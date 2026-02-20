@@ -1,3 +1,5 @@
+//go:build corporate
+
 package main
 
 import (

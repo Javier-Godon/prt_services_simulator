@@ -11,11 +11,11 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # Check prerequisites
-echo -e "${BLUE}🏢 Corporate CI/CD Pipeline Runner${NC}"
+echo -e "${BLUE}🏢 PRT Services Simulator — Corporate CI/CD Pipeline Runner${NC}"
 echo ""
 
 # Verify credentials
-if [ ! -f "../credentials/.env" ]; then
+if [ ! -f "credentials/.env" ]; then
     echo -e "${YELLOW}⚠️  credentials/.env not found${NC}"
     echo "   Create it with:"
     echo "   cat > credentials/.env << EOF"
@@ -29,7 +29,7 @@ fi
 
 # Load environment
 set -a
-source ../credentials/.env
+source credentials/.env
 set +a
 
 # Check for CA certificates
@@ -60,8 +60,8 @@ echo ""
 # Compile corporate version
 echo -e "${BLUE}Compiling corporate pipeline...${NC}"
 
-# Build directly from corporate_main.go (it has its own main() function)
-if go build -o railway-corporate-dagger-go corporate_main.go 2>&1; then
+# Build directly from corporate_main.go using build tag
+if go build -tags corporate -o railway-corporate-dagger-go corporate_main.go 2>&1; then
     echo -e "${GREEN}✓ Build successful${NC}"
 else
     echo -e "${YELLOW}❌ Build failed${NC}"

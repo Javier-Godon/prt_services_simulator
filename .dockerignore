@@ -1,0 +1,11 @@
+# Exclude CI/CD, docs, IDE, and build artifacts from Docker context
+dagger_go/
+.git/
+.idea/
+.vscode/
+target/
+*.md
+LICENSE
+.gitignore
+.env
+.env.*

@@ -1,8 +1,15 @@
 #!/bin/bash
-# Run the Railway Dagger Go CI/CD pipeline with GitHub registry authentication
+# Run the PRT Services Simulator Dagger Go CI/CD pipeline with GitHub registry authentication
 # Usage: ./run.sh
 
 set -e
+
+# Load credentials from .env file if present
+if [ -f "credentials/.env" ]; then
+    set -a
+    source credentials/.env
+    set +a
+fi
 
 # Check required environment variables
 if [ -z "$CR_PAT" ]; then
@@ -17,9 +24,9 @@ if [ -z "$USERNAME" ]; then
     exit 1
 fi
 
-echo "🚀 Running Railway Framework CI/CD Pipeline"
-echo "   Repository: ${REPO_NAME:-railway_oriented_java}"
-echo "   Image Name: ${IMAGE_NAME:-railway_oriented_java}"
+echo "🚀 Running PRT Services Simulator CI/CD Pipeline"
+echo "   Repository: ${REPO_NAME:-prt_services_simulator}"
+echo "   Image Name: ${IMAGE_NAME:-prt_services_simulator}"
 echo "   GitHub User: $USERNAME"
 echo ""
 

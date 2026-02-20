@@ -8,9 +8,9 @@ import (
 
 // TestRepositoryConfiguration tests repository configuration
 func TestRepositoryConfiguration(t *testing.T) {
-	pipeline := &RailwayPipeline{
-		RepoName:  "railway_oriented_java",
-		GitRepo:   "https://github.com/test/railway_oriented_java.git",
+	pipeline := &SimulatorPipeline{
+		RepoName:  "prt_services_simulator",
+		GitRepo:   "https://github.com/test/prt_services_simulator.git",
 		GitBranch: "main",
 		GitUser:   "testuser",
 	}
@@ -46,12 +46,12 @@ func TestEnvironmentVariables(t *testing.T) {
 
 // TestImageNaming tests Docker image naming logic
 func TestImageNaming(t *testing.T) {
-	pipeline := &RailwayPipeline{
-		ImageName: "railway_framework",
+	pipeline := &SimulatorPipeline{
+		ImageName: "prt_services_simulator",
 		GitUser:   "javier-godon",
 	}
 
-	imageName := fmt.Sprintf("ghcr.io/%s/%s:v1.0.0", pipeline.GitUser, pipeline.ImageName)
+	imageName := fmt.Sprintf("ghcr.io/%s/%s:v0.1.0", pipeline.GitUser, pipeline.ImageName)
 
 	if imageName == "" {
 		t.Fatal("Image name is empty")
@@ -67,7 +67,7 @@ func TestImageNaming(t *testing.T) {
 // TestGitRepositoryURL tests Git repository URL construction
 func TestGitRepositoryURL(t *testing.T) {
 	username := "testuser"
-	repoName := "railway_oriented_java"
+	repoName := "prt_services_simulator"
 
 	gitRepo := fmt.Sprintf("https://github.com/%s/%s.git", username, repoName)
 

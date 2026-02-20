@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🧪 Testing Railway Dagger Go CI/CD Pipeline..."
+echo "🧪 Testing PRT Services Simulator Dagger Go CI/CD Pipeline..."
 echo ""
 
 # Check for Go installation
@@ -28,7 +28,7 @@ go test -v -run Test
 
 # Build the binary
 echo ""
-echo "🔨 Building Railway Dagger Go CLI..."
+echo "🔨 Building PRT Services Simulator Dagger Go CLI..."
 go build -o railway-dagger-go main.go
 
 echo ""

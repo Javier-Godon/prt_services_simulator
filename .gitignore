@@ -51,6 +51,10 @@ dagger_go/railway-dagger-go
 dagger_go/railway-corporate-dagger-go
 dagger_go/test_run.log
 
+# ── Binary fixtures (re-downloadable from ICAO) ──────────────
+src/main/resources/fixtures/*.bin
+src/main/resources/fixtures/*.der
+
 # ── OS files ──────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
