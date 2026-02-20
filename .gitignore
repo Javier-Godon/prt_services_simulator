@@ -1,4 +1,21 @@
+# ═══════════════════════════════════════════════════════════════
+# prt_services_simulator — .gitignore
+# Java (Spring Boot / Maven) + Dagger (Go) CI/CD pipeline
+# ═══════════════════════════════════════════════════════════════
+
+# ── Credentials & secrets — NEVER commit ──────────────────────
+dagger_go/credentials/
+.env
+.env.*
+!.env.example
+
+# ── Java / Maven ──────────────────────────────────────────────
 target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -7,11 +24,43 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
-# https://maven.apache.org/wrapper/#usage-without-binary-jar
 .mvn/wrapper/maven-wrapper.jar
 
-# Eclipse m2e generated files
-# Eclipse Core
+# ── IDEs ──────────────────────────────────────────────────────
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
 .project
-# JDT-specific (Eclipse Java Development Tools)
 .classpath
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# NetBeans
+nb-configuration.xml
+
+# ── Go (Dagger pipeline) ─────────────────────────────────────
+dagger_go/railway-dagger-go
+dagger_go/railway-corporate-dagger-go
+dagger_go/test_run.log
+
+# ── OS files ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Docker ────────────────────────────────────────────────────
+.dockerignore.bak

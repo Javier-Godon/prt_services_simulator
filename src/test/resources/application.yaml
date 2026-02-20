@@ -1,0 +1,17 @@
+server:
+  port: 0  # Random port for tests
+
+simulator:
+  auth:
+    expected-client-id: cert-parser-client
+    expected-client-secret: super-secret-123
+    expected-username: operator@border.gov
+    expected-password: operator-pass
+    access-token: simulated-access-token-abc123
+  login:
+    expected-border-post-id: 1
+    expected-box-id: 1
+    expected-passenger-control-type: 1
+    sfc-token: simulated-sfc-token-xyz789
+  download:
+    fixture-file: fixtures/ml_sample.bin

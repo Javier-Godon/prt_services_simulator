@@ -1,0 +1,29 @@
+server:
+  port: 8087
+
+# ──────────────────────────────────────────────────────────────────
+# PRT Services Simulator Configuration
+# ──────────────────────────────────────────────────────────────────
+# These values define the expected credentials and tokens.
+# Override via environment variables for Kubernetes deployment.
+
+simulator:
+  # Step 1: OpenID Connect password grant
+  auth:
+    expected-client-id: cert-parser-client
+    expected-client-secret: super-secret-123
+    expected-username: operator@border.gov
+    expected-password: operator-pass
+    access-token: simulated-access-token-abc123
+
+  # Step 2: SFC login
+  login:
+    expected-border-post-id: 1
+    expected-box-id: XX/99/X
+    expected-passenger-control-type: 1
+    sfc-token: simulated-sfc-token-xyz789
+
+  # Step 3: Certificate download
+  download:
+    # Path to a .bin fixture file to serve (relative to classpath)
+    fixture-file: fixtures/ml_sample.bin

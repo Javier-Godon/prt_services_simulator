@@ -1,0 +1,41 @@
+{
+  "info": {
+    "_postman_id": "7d9f4e2a-3b5a-4c9b-9e2d-123456789abc",
+    "name": "Certificates API Collection",
+    "description": "Collection generated from curl command for CSCA certificate retrieval.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get CSCA Certificates",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer simulated-access-token-abc123",
+            "type": "text"
+          },
+          {
+            "key": "x-sfc-authorization",
+            "value": "Bearer simulated-sfc-token-xyz789",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8087/certificates/csca",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8087",
+          "path": [
+            "certificates",
+            "csca"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
