@@ -5,10 +5,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -21,7 +19,7 @@ import (
 const (
 	corporateSeparatorLine = "─────────────────────────────────────────────────────────────────────────────────"
 	baseImageCorporate     = "amazoncorretto:25.0.1"
-	appWorkdirCorporate    = "/app/railway_framework"
+	appWorkdirCorporate    = "/app/prt_services_simulator"
 )
 
 // CorporatePipeline represents the Railway-Oriented Java framework CI/CD pipeline with corporate support
@@ -83,7 +81,7 @@ func main() {
 	// Get repository information from environment
 	repoName := os.Getenv("REPO_NAME")
 	if repoName == "" {
-		repoName = "railway_oriented_java"
+		repoName = "prt_services_simulator"
 	}
 
 	gitRepo := os.Getenv("GIT_REPO")
@@ -714,7 +712,7 @@ func collectFromDirectory(dir string, discovered map[string]bool, paths *[]strin
 func (cp *CorporatePipeline) runCorporate(ctx context.Context, client *dagger.Client) error {
 	const (
 		baseImage = "amazoncorretto:25.0.1"
-		appPath   = "/app/railway_framework"
+		appPath   = "/app/prt_services_simulator"
 	)
 
 	cp.MavenCache = client.CacheVolume("maven-cache")
@@ -723,7 +721,7 @@ func (cp *CorporatePipeline) runCorporate(ctx context.Context, client *dagger.Cl
 
 	setupContainer := cp.setupBuildEnv(client, baseImage)
 	source, commitSHA := cp.getRepositorySource(ctx, client)
-	builder := setupContainer.WithMountedDirectory("/app", source).WithWorkdir(appPath)
+	builder := setupContainer.WithMountedDirectory(appPath, source).WithWorkdir(appPath)
 
 	if err := cp.runTestStage(ctx, builder); err != nil {
 		return err
@@ -837,19 +835,18 @@ func (cp *CorporatePipeline) runTestStage(ctx context.Context, builder *dagger.C
 	return nil
 }
 
-// runUnitTestsInContainer executes unit tests inside the Dagger container
+// runUnitTestsInContainer executes all tests inside the Dagger container
 func (cp *CorporatePipeline) runUnitTestsInContainer(ctx context.Context, builder *dagger.Container) error {
 	fmt.Println("\n╔═══════════════════════════════════════════════════════════════════════════════╗")
-	fmt.Println("║  STAGE: Unit Tests Execution (Dagger Container)                              ║")
+	fmt.Println("║  STAGE: Tests Execution (Dagger Container)                                   ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════╝")
 	fmt.Println("📍 Location: Inside Dagger container (isolated environment)")
-	fmt.Println("⚡ Characteristics: Fast, no external dependencies, pure business logic")
+	fmt.Println("⚡ Characteristics: Fast, no external dependencies, MockMvc tests")
 	fmt.Println("🏢 Corporate: CA certificates and proxy configured")
 	fmt.Println("")
 	fmt.Println("⚙️  Configuration:")
-	fmt.Printf("   • Test Pattern: !*IntegrationTest (excludes integration tests)\n")
+	fmt.Printf("   • Test Suite: Full MockMvc test suite (all endpoints)\n")
 	fmt.Printf("   • Java Version: 25 (with preview features)\n")
-	fmt.Printf("   • Expected Test Count: ~58 unit tests\n")
 	if cp.ProxyURL != "" {
 		fmt.Printf("   • Proxy: %s\n", cp.ProxyURL)
 	}
@@ -857,12 +854,11 @@ func (cp *CorporatePipeline) runUnitTestsInContainer(ctx context.Context, builde
 		fmt.Printf("   • CA Certificates: %d loaded\n", len(cp.CACertPaths))
 	}
 	fmt.Println("")
-	fmt.Println("🏃 Executing: mvn test -Dtest=!*IntegrationTest")
+	fmt.Println("🏃 Executing: mvn test")
 	fmt.Println(corporateSeparatorLine)
 
 	_, err := builder.WithExec([]string{
 		"mvn", "test",
-		"-Dtest=!*IntegrationTest",
 		"-Dmaven.compiler.release=25",
 		"-Dmaven.compiler.compilerArgs=--enable-preview",
 	}).Stdout(ctx)
@@ -870,78 +866,28 @@ func (cp *CorporatePipeline) runUnitTestsInContainer(ctx context.Context, builde
 	fmt.Println(corporateSeparatorLine)
 
 	if err != nil {
-		fmt.Println("\n❌ FAILED: Unit tests failed")
+		fmt.Println("\n❌ FAILED: Tests failed")
 		fmt.Println("   Check test output above for details")
 		return err
 	}
 
-	fmt.Println("\n✅ SUCCESS: All unit tests passed")
+	fmt.Println("\n✅ SUCCESS: All tests passed")
 	fmt.Println("")
 	return nil
 }
 
-// runIntegrationTestsOnHost executes integration tests on the host machine
+// runIntegrationTestsOnHost is a no-op for prt_services_simulator.
+// All tests (MockMvc) run inside the Dagger container via runUnitTestsInContainer.
+// This project has no Testcontainer-based integration tests requiring host Docker.
 func (cp *CorporatePipeline) runIntegrationTestsOnHost(ctx context.Context) error {
 	fmt.Println("\n╔═══════════════════════════════════════════════════════════════════════════════╗")
-	fmt.Println("║  STAGE: Integration Tests Execution (Host Machine)                           ║")
+	fmt.Println("║  STAGE: Integration Tests — Skipped (all tests run in container)             ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════╝")
-	fmt.Println("📍 Location: Host machine (NOT in Dagger container)")
-	fmt.Println("🐘 Testcontainers: Will use host Docker directly")
-	fmt.Println("🔧 Tool: Maven Wrapper (../railway_framework/mvnw) - no Maven installation required")
-	fmt.Println("🏢 Corporate: Uses host's corporate CA and proxy settings")
+	fmt.Println("📍 prt_services_simulator uses only MockMvc tests (Spring Boot @SpringBootTest)")
+	fmt.Println("   All tests already executed inside the Dagger container above.")
+	fmt.Println("   No host-based Testcontainer / Cucumber integration tests exist in this project.")
 	fmt.Println("")
-
-	// Get current working directory and construct absolute path
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
-	}
-	workDir := cwd + "/../railway_framework"
-
-	fmt.Println("⚙️  Configuration:")
-	fmt.Printf("   • Current Directory: %s\n", cwd)
-	fmt.Printf("   • Working Directory: %s\n", workDir)
-	fmt.Printf("   • Test Pattern: *IntegrationTest\n")
-	fmt.Printf("   • Maven Profile: include-integration-tests\n")
-	fmt.Printf("   • Java Version: 25 (with preview features)\n")
-	if cp.ProxyURL != "" {
-		fmt.Printf("   • Proxy: %s (inherited from host)\n", cp.ProxyURL)
-	}
-	fmt.Println("")
-
-	fmt.Println("🏃 Executing: ./mvnw test -Pinclude-integration-tests -Dtest=*IntegrationTest")
-	fmt.Println(corporateSeparatorLine)
-
-	cmd := exec.CommandContext(ctx, "./mvnw", "test",
-		"-Pinclude-integration-tests",
-		"-Dtest=*IntegrationTest",
-		"-Dmaven.compiler.release=25",
-		"-Dmaven.compiler.compilerArgs=--enable-preview")
-
-	cmd.Dir = workDir
-
-	// Capture output to parse test results while still showing it
-	var outputBuffer strings.Builder
-	multiWriter := io.MultiWriter(os.Stdout, &outputBuffer)
-	cmd.Stdout = multiWriter
-	cmd.Stderr = os.Stderr
-
-	// Preserve corporate proxy settings if set
-	cmd.Env = os.Environ() // Inherit all environment variables including HTTP_PROXY
-
-	start := time.Now()
-	err = cmd.Run()
-	duration := time.Since(start)
-
-	fmt.Println(corporateSeparatorLine)
-
-	// Parse and display test summary
-	cp.displayIntegrationTestSummary(outputBuffer.String(), duration, err)
-
-	if err != nil {
-		return fmt.Errorf("integration tests failed: %w", err)
-	}
-
+	fmt.Println("✅ Integration test stage: OK (nothing to run separately)")
 	return nil
 }
 

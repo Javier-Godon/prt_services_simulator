@@ -1,26 +1,25 @@
 # Dagger Go Build & Run Guide
 
-Complete guide to building and running the Railway-Oriented Java Dagger Go CI/CD pipeline.
+Complete guide to building and running the PRT Services Simulator Dagger Go CI/CD pipeline.
 
 ## ⚡ Quick Reference
 
 | Goal | Command | Time |
 |------|---------|------|
-| **Unit tests only** | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_INTEGRATION_TESTS=false ./run.sh` | 5-10s |
-| **Full pipeline** | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_UNIT_TESTS=true RUN_INTEGRATION_TESTS=true ./run.sh` | 40-60s |
-| **Corporate pipeline** | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME DEBUG_CERTS && ./run-corporate.sh` | 40-60s |
-| **Integration only** | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_UNIT_TESTS=false ./run.sh` | 30-45s |
-| **Default (smart)** | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh` | 40-60s |
-| **Test code** | `cd dagger_go && set -a && source ../credentials/.env && set +a && go test -v` | 30-60s |
-| **Build binary** | `cd dagger_go && go build -o railway-dagger-go main.go` | 5-10s |
-| **Build corporate** | `cd dagger_go && go build -o railway-corporate-dagger-go corporate_main.go` | 5-10s |
+| **Full pipeline** | `set -a && source credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh` | 40-60s |
+| **Corporate pipeline** | `set -a && source credentials/.env && set +a && export CR_PAT USERNAME DEBUG_CERTS && ./run-corporate.sh` | 40-60s |
+| **Test code** | `go test -v` | 30-60s |
+| **Build binary** | `go build -o railway-dagger-go main.go` | 5-10s |
+| **Build corporate** | `go build -tags corporate -o railway-corporate-dagger-go corporate_main.go` | 5-10s |
 | **Debug** | VSC F5 → Debug Dagger Go | Live |
 
 **Key Points**:
 - ❌ **Dagger CLI NOT required** - Uses Dagger Go SDK
-- ✅ **Docker required** for integration tests (optional for unit tests)
-- ✅ **Environment variables** control test scope
-- ✅ **Smart defaults** - full coverage by default, graceful degradation without Docker
+- ✅ **Docker required** for running the pipeline
+- ✅ **All tests run inside the Dagger container** (MockMvc via `mvn test`)
+- ✅ **No Testcontainers / Cucumber** — pure Spring Boot MockMvc tests
+
+> **Note**: All commands are run from inside the `dagger_go/` directory.
 
 ---
 
@@ -54,8 +53,7 @@ cat credentials/.env        # Should show CR_PAT=... USERNAME=...
 **Command:**
 
 ```bash
-cd dagger_go
-set -a && source ../credentials/.env && set +a && go test -v
+set -a && source credentials/.env && set +a && go test -v
 ```
 
 **What happens:**
@@ -88,7 +86,6 @@ ok      railway/dagger    2.345s
 **Command:**
 
 ```bash
-cd dagger_go
 go mod download dagger.io/dagger && go mod tidy
 go build -o railway-dagger-go main.go
 ```
@@ -112,131 +109,44 @@ railway-dagger-go: ELF 64-bit LSB executable, x86-64
 - ✅ Pure Go compilation (no dependencies needed after download)
 - ❌ Does NOT require Docker
 - Binary ready for server deployment
-- Run with credentials: `set -a && source ../credentials/.env && set +a && ./railway-dagger-go`
+- Run with credentials: `set -a && source credentials/.env && set +a && ./railway-dagger-go`
 
 ---
 
-### Workflow 3: Run Pipeline with Independent Test Control
-
-**Goal**: Run the pipeline with flexible test scoping
-
-**Key Feature**: Choose which tests to run via environment variables:
-
-```bash
-# Full suite (unit + integration tests)
-set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_UNIT_TESTS=true RUN_INTEGRATION_TESTS=true ./run.sh
-
-# Unit tests only (fast: 5-10 seconds, no Docker required)
-set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_INTEGRATION_TESTS=false ./run.sh
-
-# Integration tests only (30-45 seconds, requires Docker)
-set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_UNIT_TESTS=false ./run.sh
-
-# Default (full suite with smart Docker detection)
-set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh
-```
-
-**Test Matrix:**
-
-| Scenario | Command | Tests | Time | Docker |
-|----------|---------|-------|------|--------|
-| Full (default) | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_UNIT_TESTS=true RUN_INTEGRATION_TESTS=true ./run.sh` | Unit + Integration | 40-60s | Optional |
-| Unit only | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_INTEGRATION_TESTS=false ./run.sh` | Unit | 5-10s | No |
-| Integration | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_UNIT_TESTS=false ./run.sh` | Integration | 30-45s | Yes |
-| Auto-degrade | `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh` (no Docker) | Unit | 5-10s | No |
-
-**How it works:**
-
-1. Pipeline checks `RUN_UNIT_TESTS` and `RUN_INTEGRATION_TESTS` environment variables
-2. Detects Docker availability automatically
-3. Runs appropriate test scope:
-   - **Both true + Docker available** → Full suite (unit + integration with testcontainers)
-   - **Unit true, Integration false** → Unit tests only (fast)
-   - **Unit false, Integration true + Docker** → Integration tests only (focused)
-   - **Docker unavailable** → Gracefully runs unit tests only
-4. Logs configuration at startup for visibility
-
-**Console Output Example:**
-
-```
-🧪 Test Configuration:
-   Unit tests: true (override with RUN_UNIT_TESTS=false)
-   Integration tests: true (override with RUN_INTEGRATION_TESTS=false)
-
-🔍 Checking Docker availability for testcontainers...
-✅ Docker detected - mounting Docker socket for full test suite
-
-🧪 Running tests...
-   📊 Test scope: Unit + Integration (with Docker)
-✅ Tests passed successfully
-```
-
-**GitHub Actions Integration:**
-
-Fast PR checks:
-```yaml
-- name: Quick Unit Tests
-  env:
-    RUN_INTEGRATION_TESTS: 'false'
-    CR_PAT: ${{ secrets.CR_PAT }}
-    USERNAME: ${{ github.actor }}
-  run: cd dagger_go && ./run.sh
-```
-
-Full tests on main:
-```yaml
-- name: Full Test Suite
-  env:
-    CR_PAT: ${{ secrets.CR_PAT }}
-    USERNAME: ${{ github.actor }}
-  run: cd dagger_go && ./run.sh
-```
-
-**Key Points:**
-- ✅ Environment-variable driven (easy to configure)
-- ✅ Smart defaults (full coverage by default)
-- ✅ Graceful degradation (works without Docker)
-- ✅ Fast feedback (unit-only in 5-10 seconds)
-- ✅ Flexible CI/CD (different workflows for different needs)
-
----
-
-### Workflow 4: Run Full CI/CD Pipeline
+### Workflow 3: Run Full CI/CD Pipeline
 
 **Goal**: Build Docker image and deploy to GitHub Container Registry
 
 **Command:**
 
 ```bash
-cd dagger_go
-set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh
+set -a && source credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh
 ```
 
 **What happens:**
 1. Loads credentials from credentials/.env
 2. Connects to Dagger Engine (via Docker)
-3. Builds Maven project (`mvn clean package`)
-4. Creates Docker image
-5. Tags with git commit SHA
-6. Pushes to GitHub Container Registry
+3. Runs all MockMvc tests (`mvn test`) inside the container
+4. Builds JAR (`mvn package -DskipTests`)
+5. Creates Docker image
+6. Tags with git commit SHA + timestamp
+7. Pushes to GitHub Container Registry
 
 **Success output:**
 ```
-🚀 Starting Railway Dagger Go CI/CD Pipeline...
-📦 Building Maven project...
+🚀 Starting prt_services_simulator CI/CD Pipeline (Go SDK v0.19.7)...
+🧪 Running all tests (Spring Boot MockMvc)...
+  [INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
   [INFO] BUILD SUCCESS
+📦 Building Maven artifact (JAR file)...
 🐳 Building Docker image...
-  Step 1/15 : FROM amazoncorretto:25.0.1-al2
-  ...
-📤 Pushing to GHCR...
-  Digest: sha256:abc123def456...
+📤 Publishing to: ghcr.io/username/prt-services-simulator:v0.1.0-abc1234-20260223-1200
 ✅ Pipeline completed successfully!
-Image: ghcr.io/username/railway_framework:abc1234def
 ```
 
 **Duration**:
 - First run: 3-5 minutes (downloads dependencies)
-- Cached run: 1-2 minutes (uses layer cache)
+- Cached run: 1-2 minutes (uses Maven + layer cache)
 
 **Requirements:**
 - ✅ Docker running (Dagger SDK uses it)
@@ -245,15 +155,14 @@ Image: ghcr.io/username/railway_framework:abc1234def
 
 ---
 
-### Workflow 5: Run Corporate Pipeline (MITM Proxy + CA Certificates)
+### Workflow 4: Run Corporate Pipeline (MITM Proxy + CA Certificates)
 
 **Goal**: Build with corporate proxy and custom CA certificates support
 
 **Command:**
 
 ```bash
-cd dagger_go
-set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME DEBUG_CERTS && ./run-corporate.sh
+set -a && source credentials/.env && set +a && export CR_PAT USERNAME DEBUG_CERTS && ./run-corporate.sh
 ```
 
 **What's Different:**
@@ -284,30 +193,16 @@ set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME DEBUG_C
 **Success output:**
 ```
 🏢 CORPORATE MODE: MITM Proxy & Custom CA Support
-   🔍 Debug mode: ENABLED - Certificate discovery active
    📜 Found 2 CA certificate path(s)
       - ca-certificates.crt ✅
-      - certs ✅
+      - corporate-ca.pem ✅
 
-📜 Certificate Discovery - Detailed Log
-─────────────────────────────────────────────────────────────────────────────────
-🔍 Source: User-provided certificates (credentials/certs/)
-   ✅ Found: credentials/certs/corporate-ca.pem
-
-🔍 Source: System certificate stores (50+ locations)
-   ✅ Found: /etc/ssl/certs/ca-certificates.crt
-
-📊 Certificate Discovery Summary
-─────────────────────────────────────────────────────────────────────────────────
-   🔍 Total sources checked: 37
-   ✅ Certificates found: 2
-   ℹ️  Not found: 35
-   📜 Unique certificates collected: 2
-─────────────────────────────────────────────────────────────────────────────────
-
-🚀 Starting Railway Dagger Go CI/CD Pipeline...
-📦 Building Maven project...
-✅ Pipeline completed successfully!
+🚀 Starting prt_services_simulator CI/CD Pipeline (Go SDK v0.19.7 - Corporate Mode)...
+🧪 Running tests (MockMvc, inside Dagger container)...
+  [INFO] BUILD SUCCESS
+📦 Building Maven artifact...
+🐳 Building Docker image...
+✅ Corporate pipeline completed successfully!
 ```
 
 **Certificate Auto-Discovery Sources:**
@@ -323,7 +218,6 @@ set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME DEBUG_C
 **Documentation:**
 - [CERTIFICATE_LOGGING.md](../CERTIFICATE_LOGGING.md) - Detailed logging guide
 - [CERTIFICATE_QUICK_REFERENCE.md](../CERTIFICATE_QUICK_REFERENCE.md) - Setup guide
-- [.github/instructions/dagger-certificate-implementation.instructions.md](../../.github/instructions/dagger-certificate-implementation.instructions.md) - Technical details
 
 **Duration**: 40-60 seconds (same as standard pipeline)
 
@@ -339,10 +233,9 @@ set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME DEBUG_C
 
 ### Setup
 
-1. Open workspace: `code .vscode/railway.code-workspace`
-2. Open `dagger_go/main.go`
-3. Click gutter (left margin) next to line number to set breakpoint
-4. Red circle ⭕ appears
+1. Open `dagger_go/main.go`
+2. Click gutter (left margin) next to line number to set breakpoint
+3. Red circle ⭕ appears
 
 ### Run Debugger
 
@@ -367,32 +260,27 @@ Press `F5` and select "Debug Dagger Go"
 ## File Structure
 
 ```
-railway_oriented_java/
-├── credentials/
-│   └── .env                    # CR_PAT, USERNAME (your secrets)
-│
-├── dagger_go/                  # ← You work here
-│   ├── main.go                 # Pipeline code (230+ lines)
-│   ├── main_test.go            # Unit tests
+prt_services_simulator/
+├── dagger_go/                  # ← You work here (run all commands from here)
+│   ├── main.go                 # Standard pipeline
+│   ├── corporate_main.go       # Corporate pipeline (proxy + CA certs)
+│   ├── main_test.go            # Pipeline unit tests
 │   ├── go.mod                  # Go module definition
 │   ├── go.sum                  # Dependency checksums
-│   ├── test.sh                 # Test runner
-│   ├── run.sh                  # Pipeline executor
+│   ├── run.sh                  # Standard pipeline runner
+│   ├── run-corporate.sh        # Corporate pipeline runner
 │   ├── railway-dagger-go       # Binary (after `go build`)
-│   └── BUILD_AND_RUN.md        # This file
+│   ├── railway-corporate-dagger-go  # Corporate binary (after build)
+│   └── credentials/            # ← Secrets live here
+│       ├── .env                # CR_PAT, USERNAME, optional proxy
+│       └── certs/              # Optional: corporate CA .pem files
 │
-├── .vscode/
-│   ├── tasks.json              # VSC tasks (for reference)
-│   ├── launch.json             # Debug config
-│   ├── settings.json           # Editor settings
-│   └── railway.code-workspace  # Multi-folder workspace
+├── src/
+│   ├── main/java/com/border/simulator/   # Spring Boot application
+│   └── test/java/com/border/simulator/   # MockMvc tests
 │
-├── railway_framework/          # Main Java application
-│   ├── pom.xml
-│   └── src/
-│
-└── deployment/                 # Kubernetes configs
-    └── k8s/
+├── pom.xml                     # Maven build descriptor
+└── Dockerfile                  # Container image definition
 ```
 
 ---
@@ -410,12 +298,9 @@ railway_oriented_java/
 dagger run
 
 # ✅ Right:
-cd dagger_go
 go test -v
 ./run.sh
 ```
-
-The Dagger Go SDK in `go.mod` handles everything.
 
 ### Error: "Cannot connect to Docker daemon"
 
@@ -437,6 +322,7 @@ docker ps
 **Solution**:
 
 ```bash
+mkdir -p credentials
 cat > credentials/.env << EOF
 CR_PAT=ghp_your_github_token
 USERNAME=your_github_username
@@ -464,23 +350,7 @@ export PATH=$PATH:/usr/local/go/bin
 **Solution**:
 
 ```bash
-chmod +x dagger_go/run.sh
-chmod +x dagger_go/test.sh
-
-# Try again
-cd dagger_go
-set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh
-```
-
-### Error: "No such file or directory: ./run.sh"
-
-**Cause**: Script not executable
-
-**Solution**:
-
-```bash
-chmod +x dagger_go/test.sh
-chmod +x dagger_go/run.sh
+chmod +x run.sh run-corporate.sh test.sh
 ```
 
 ### Error: "go: unknown module: dagger.io/dagger"
@@ -490,7 +360,6 @@ chmod +x dagger_go/run.sh
 **Solution**:
 
 ```bash
-cd dagger_go
 go mod download dagger.io/dagger
 go mod tidy
 go test -v
@@ -503,8 +372,6 @@ go test -v
 **Solution** (run these in order):
 
 ```bash
-cd dagger_go
-
 # Step 1: Download the Dagger module
 go mod download dagger.io/dagger
 
@@ -515,15 +382,6 @@ go mod tidy
 go build -o railway-dagger-go main.go
 ```
 
-**Expected output:**
-```
-go: downloading dagger.io/dagger v0.19.7
-go: downloading github.com/Khan/genqlient v0.8.1
-[... more downloads ...]
-```
-
-After these commands complete, `go.sum` will be updated and the build will succeed.
-
 ---
 
 ## Common Issues & Quick Fixes
@@ -532,10 +390,11 @@ After these commands complete, `go.sum` will be updated and the build will succe
 |---------|-----------|
 | "Command not found: go" | Install Go from golang.org |
 | "Cannot connect to Docker" | Start Docker Desktop or daemon |
-| "Permission denied: ./run.sh" | `chmod +x dagger_go/test.sh run.sh` |
+| "Permission denied: ./run.sh" | `chmod +x run.sh run-corporate.sh` |
 | ".env not found" | Create `credentials/.env` with CR_PAT and USERNAME |
-| "Module not found" | `cd dagger_go && go mod tidy` |
+| "Module not found" | `go mod tidy` |
 | "dagger: command not found" | Don't use Dagger CLI - use `go test -v` instead |
+| "No POM in this directory" | Source mount path mismatch — ensure pipeline binary is rebuilt |
 
 ---
 
@@ -558,10 +417,10 @@ After these commands complete, `go.sum` will be updated and the build will succe
 ## Next Steps
 
 1. ✅ Verify prerequisites (Go, Docker, credentials/.env)
-2. ✅ Test code: `cd dagger_go && set -a && source ../credentials/.env && set +a && go test -v`
-3. ✅ Build binary: `cd dagger_go && go mod download dagger.io/dagger && go build -o railway-dagger-go main.go`
-4. ✅ Run pipeline: `set -a && source ../credentials/.env && set +a && export CR_PAT USERNAME && RUN_UNIT_TESTS=true RUN_INTEGRATION_TESTS=true ./run.sh`
-5. ✅ Monitor logs in Dagger Cloud (link provided in output)
+2. ✅ Test code: `set -a && source credentials/.env && set +a && go test -v`
+3. ✅ Build binary: `go mod download dagger.io/dagger && go build -o railway-dagger-go main.go`
+4. ✅ Run pipeline: `set -a && source credentials/.env && set +a && export CR_PAT USERNAME && ./run.sh`
+5. ✅ Monitor logs in Dagger output
 6. ✅ Check image in GitHub Container Registry
 
 ---
@@ -571,12 +430,10 @@ After these commands complete, `go.sum` will be updated and the build will succe
 - 📖 [Go Documentation](https://golang.org/doc)
 - 🐳 [Docker Documentation](https://docs.docker.com)
 - 🔧 [Dagger SDK](https://docs.dagger.io)
-- ⚡ [Quick Start Guide](./QUICKSTART.md)
-- 📋 [Dagger Go SDK Docs](./DAGGER_GO_SDK.md)
 
 ---
 
 **Summary**: No Dagger CLI needed. Just Go + Docker. Run `go test -v` to verify, `go build` to create binary, `./run.sh` to deploy. All credentials loaded from `credentials/.env` automatically.
 
-**Last Updated**: November 22, 2025
+**Last Updated**: February 23, 2026
 **Status**: ✅ Ready to use

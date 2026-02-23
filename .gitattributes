@@ -1,0 +1,4 @@
+# Binary test fixtures — never apply line-ending conversion or text diffing
+src/main/resources/fixtures/*.bin  binary
+src/test/resources/fixtures/*.bin  binary
+

@@ -127,7 +127,7 @@ func (p *SimulatorPipeline) run(ctx context.Context, client *dagger.Client) erro
 		From(baseImage).
 		WithExec([]string{"yum", "install", "-y", "maven"}).
 		WithMountedCache("/root/.m2", p.MavenCache).
-		WithMountedDirectory("/app", source).
+		WithMountedDirectory(appWorkdir, source).
 		WithWorkdir(appWorkdir)
 
 	// ── Stage 1: Test ────────────────────────────────────────────
