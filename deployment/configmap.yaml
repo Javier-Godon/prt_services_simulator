@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prt-simulator-config
+  namespace: prt-simulator
+  labels:
+    app.kubernetes.io/name: prt-services-simulator
+    app.kubernetes.io/component: config
+data:
+  # ── application.yaml mounted at /config/application.yaml ──────────────────
+  # Spring Boot picks this up via SPRING_CONFIG_ADDITIONAL_LOCATION=/config/
+  # All values here override the defaults baked into the JAR.
+  application.yaml: |
+    server:
+      port: 8087
+
+    simulator:
+      # Step 1: OpenID Connect password grant
+      auth:
+        expected-client-id: cert-parser-client
+        expected-client-secret: super-secret-123
+        expected-username: operator@border.gov
+        expected-password: operator-pass
+        access-token: simulated-access-token-abc123
+
+      # Step 2: SFC login
+      login:
+        expected-border-post-id: 1
+        expected-box-id: XX/99/X
+        expected-passenger-control-type: 1
+        sfc-token: simulated-sfc-token-xyz789
+
+      # Step 3: Certificate download
+      # Points to the volume mount path where ml_sample.bin is mounted.
+      # Change this if you mount the fixture at a different path.
+      download:
+        fixture-file: /data/fixtures/ml_sample.bin
+

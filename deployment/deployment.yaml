@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prt-services-simulator
+  namespace: prt-simulator
+  labels:
+    app.kubernetes.io/name: prt-services-simulator
+    app.kubernetes.io/component: simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prt-services-simulator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prt-services-simulator
+        app.kubernetes.io/component: simulator
+    spec:
+      # ── Security context ─────────────────────────────────────
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: prt-services-simulator
+          image: ghcr.io/your-github-username/prt-services-simulator:latest
+          # Replace 'your-github-username' with your actual GitHub username,
+          # or set IMAGE_NAME when running the pipeline.
+
+          ports:
+            - name: http
+              containerPort: 8087
+              protocol: TCP
+
+          # ── Spring Boot config override ─────────────────────
+          # Tells Spring Boot to also load /config/application.yaml,
+          # which is mounted from the ConfigMap and overrides baked-in defaults.
+          env:
+            - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+              value: "file:/config/"
+
+          # ── Resource limits ──────────────────────────────────
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # ── Probes ───────────────────────────────────────────
+          # All 3 simulator endpoints require specific HTTP methods/headers,
+          # so tcpSocket is used for all probes — it simply checks the port is open.
+          # Startup probe gives the JVM 60s to boot before liveness kicks in.
+          startupProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12        # 12 × 5s = 60s max startup time
+
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 15
+            failureThreshold: 3
+
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # ── Volume mounts ────────────────────────────────────
+          volumeMounts:
+            # application.yaml from ConfigMap → overrides baked-in config
+            - name: config-volume
+              mountPath: /config
+              readOnly: true
+
+            # ml_sample.bin from Secret → external fixture file
+            - name: fixture-volume
+              mountPath: /data/fixtures
+              readOnly: true
+
+      # ── Volumes ──────────────────────────────────────────────
+      volumes:
+        # ConfigMap: application.yaml with all simulator parameters
+        - name: config-volume
+          configMap:
+            name: prt-simulator-config
+            items:
+              - key: application.yaml
+                path: application.yaml
+
+        # Secret: binary ml_sample.bin fixture
+        - name: fixture-volume
+          secret:
+            secretName: prt-simulator-fixture
+            items:
+              - key: ml_sample.bin
+                path: ml_sample.bin
+
+
