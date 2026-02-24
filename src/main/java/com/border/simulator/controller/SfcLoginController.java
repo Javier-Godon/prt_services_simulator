@@ -55,13 +55,13 @@ public class SfcLoginController {
         }
 
         // Validate border post config (optional — log mismatches but still succeed)
-        int borderPostId = ((Number) body.getOrDefault("borderPostId", 0)).intValue();
+        String borderPostId = String.valueOf((body.getOrDefault("borderPostId", 0)));
         String boxId = String.valueOf(body.getOrDefault("boxId", ""));
-        int passengerControlType = ((Number) body.getOrDefault("passengerControlType", 0)).intValue();
+        String passengerControlType = String.valueOf((body.getOrDefault("passengerControlType", 0)));
 
-        if (borderPostId != loginProps.expectedBorderPostId()
+        if (!Objects.equals(borderPostId, loginProps.expectedBorderPostId())
                 || !Objects.equals(boxId, loginProps.expectedBoxId())
-                || passengerControlType != loginProps.expectedPassengerControlType()) {
+                || !Objects.equals(passengerControlType, loginProps.expectedPassengerControlType())) {
             log.warn("Border post config mismatch: got ({}, {}, {}), expected ({}, {}, {})",
                     borderPostId, boxId, passengerControlType,
                     loginProps.expectedBorderPostId(), loginProps.expectedBoxId(),

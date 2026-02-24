@@ -30,9 +30,9 @@ public record SimulatorProperties(
      * Step 2: SFC login configuration.
      */
     public record LoginProperties(
-            int expectedBorderPostId,
+            String expectedBorderPostId,
             String expectedBoxId,
-            int expectedPassengerControlType,
+            String expectedPassengerControlType,
             String sfcToken
     ) {}
 

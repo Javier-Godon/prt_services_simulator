@@ -26,4 +26,4 @@ simulator:
   # Step 3: Certificate download
   download:
     # Path to a .bin fixture file to serve (relative to classpath)
-    fixture-file: fixtures/ml_sample.bin
+    fixture-file: fixtures/ml_es.bin

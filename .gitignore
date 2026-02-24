@@ -52,10 +52,10 @@ dagger_go/railway-corporate-dagger-go
 dagger_go/test_run.log
 
 # ── Binary fixtures ───────────────────────────────────────────
-# src/main/resources/fixtures/ml_sample.bin IS committed — it is a
-# synthetic test blob (NOT a real ICAO certificate). See .gitattributes.
-# If you replace it with a real ICAO .ml file, add it back here:
-# src/main/resources/fixtures/*.bin
+# ml_sample.bin IS committed — it is a synthetic test blob (NOT a real
+# ICAO certificate). All other .bin files are ignored.
+src/main/resources/fixtures/*.bin
+!src/main/resources/fixtures/ml_sample.bin
 src/main/resources/fixtures/*.der
 
 # ── OS files ──────────────────────────────────────────────────

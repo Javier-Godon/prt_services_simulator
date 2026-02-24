@@ -10,8 +10,8 @@ simulator:
     access-token: simulated-access-token-abc123
   login:
     expected-border-post-id: 1
-    expected-box-id: 1
+    expected-box-id: XX/99/X
     expected-passenger-control-type: 1
     sfc-token: simulated-sfc-token-xyz789
   download:
-    fixture-file: fixtures/ml_sample.bin
+    fixture-file: fixtures/ml_es.bin
