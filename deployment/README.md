@@ -23,7 +23,8 @@ deployment/
 ├── configmap.yaml          # application.yaml — all simulator parameters
 ├── secret-fixture.yaml     # Skeleton Secret manifest (data fields empty — see DEPLOYMENT_GUIDE.md)
 ├── deployment.yaml         # Spring Boot pod
-├── service.yaml            # ClusterIP service on port 8087
+├── service.yaml            # ClusterIP service on port 8087 (in-cluster)
+├── service-nodeport.yaml   # NodePort service on port 30087 (testing only)
 ├── fixtures/               # Local fixture files (gitignored)
 │   ├── masterlist_mock.bin # Synthetic mock Master List (safe for CI / public repos)
 │   └── masterlist_es.bin   # Real Spanish Master List (staging only)

@@ -44,6 +44,16 @@ kubectl port-forward svc/prt-services-simulator 8087:8087 -n prt-simulator
 
 Then access locally: `http://localhost:8087/...`
 
+### Access via NodePort (testing only)
+
+```bash
+# Find your node IP
+kubectl get nodes -o wide
+
+# Access directly on port 30087 — no port-forward needed
+curl http://<node-ip>:30087/protocol/openid-connect/token ...
+```
+
 ### Restart deployment
 
 ```bash

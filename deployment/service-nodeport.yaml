@@ -1,0 +1,33 @@
+# ═══════════════════════════════════════════════════════════════
+# NodePort Service — FOR TESTING ONLY
+# ═══════════════════════════════════════════════════════════════
+# Exposes the simulator directly on each cluster node at port 30087,
+# useful for quick manual testing without port-forwarding.
+#
+# Access from outside the cluster:
+#   http://<node-ip>:30087/...
+#
+# Find your node IP:
+#   kubectl get nodes -o wide
+#
+# This service is NOT intended for production use.
+# The ClusterIP service (service.yaml) handles in-cluster traffic.
+# ═══════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: prt-services-simulator-nodeport
+  namespace: prt-simulator
+  labels:
+    app.kubernetes.io/name: prt-services-simulator
+    app.kubernetes.io/component: simulator-nodeport
+spec:
+  selector:
+    app.kubernetes.io/name: prt-services-simulator
+  type: NodePort
+  ports:
+    - name: http
+      port: 8087
+      targetPort: http
+      nodePort: 30087
+      protocol: TCP

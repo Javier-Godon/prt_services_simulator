@@ -217,6 +217,12 @@ kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/name=prt-services-simulato
 log_info "Service info:"
 kubectl get service prt-services-simulator -n "$NAMESPACE"
 
+log_info "NodePort service info (testing):"
+kubectl get service prt-services-simulator-nodeport -n "$NAMESPACE"
+
+NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "<node-ip>")
+log_info "NodePort access: http://${NODE_IP}:30087"
+
 log_info "Mounted fixtures inside pod:"
 kubectl exec -it deployment/prt-services-simulator -n "$NAMESPACE" -- ls -lh /data/fixtures/
 
@@ -296,9 +302,11 @@ fi
 echo ""
 log_success "Deployment complete!"
 echo ""
-echo "  Namespace:  $NAMESPACE"
-echo "  Service:    prt-services-simulator:8087"
+echo "  Namespace:   $NAMESPACE"
+echo "  ClusterIP:   prt-services-simulator:8087       (in-cluster)"
+echo "  NodePort:    <node-ip>:30087                   (external, testing only)"
 echo ""
+log_info "Find node IP:  kubectl get nodes -o wide"
 log_info "Useful commands:"
 echo "  kubectl logs -f deployment/prt-services-simulator -n $NAMESPACE"
 echo "  kubectl exec -it deployment/prt-services-simulator -n $NAMESPACE -- sh"
