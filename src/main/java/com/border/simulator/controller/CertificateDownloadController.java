@@ -4,6 +4,8 @@ import com.border.simulator.config.SimulatorProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,7 +64,14 @@ public class CertificateDownloadController {
         // Serve fixture file
         String fixturePath = properties.download().fixtureFile();
         try {
-            var resource = new ClassPathResource(fixturePath);
+            // Support both classpath resources (relative paths like "fixtures/file.bin")
+            // and filesystem paths (absolute paths like "/data/fixtures/file.bin" from K8s mounts)
+            Resource resource;
+            if (fixturePath.startsWith("/")) {
+                resource = new FileSystemResource(fixturePath);
+            } else {
+                resource = new ClassPathResource(fixturePath);
+            }
             byte[] data = resource.getInputStream().readAllBytes();
             log.info("Serving fixture: {} ({} bytes)", fixturePath, data.length);
             return ResponseEntity.ok()
