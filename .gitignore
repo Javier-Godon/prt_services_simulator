@@ -5,6 +5,7 @@
 
 # ── Credentials & secrets — NEVER commit ──────────────────────
 dagger_go/credentials/
+deployment/secrets/
 .env
 .env.*
 !.env.example

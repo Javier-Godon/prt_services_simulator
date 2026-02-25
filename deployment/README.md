@@ -1,18 +1,33 @@
 # Kubernetes Deployment — PRT Services Simulator
 
+## Quick start
+
+Use the automated deployment script:
+
+```bash
+./deployment/deploy.sh
+```
+
+For details and manual steps, see **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**.
+
+---
+
 ## Structure
 
 ```
 deployment/
+├── deploy.sh               # 🚀 Automated deployment (recommended)
+├── undeploy.sh             # 🗑️ Automated teardown
 ├── kustomization.yaml      # Wires all manifests together
 ├── namespace.yaml          # prt-simulator namespace
 ├── configmap.yaml          # application.yaml — all simulator parameters
 ├── secret-fixture.yaml     # Skeleton Secret manifest (data fields empty — see DEPLOYMENT_GUIDE.md)
 ├── deployment.yaml         # Spring Boot pod
 ├── service.yaml            # ClusterIP service on port 8087
-├── fixtures/               # Committed to staging branch
+├── fixtures/               # Local fixture files (gitignored)
 │   ├── masterlist_mock.bin # Synthetic mock Master List (safe for CI / public repos)
 │   └── masterlist_es.bin   # Real Spanish Master List (staging only)
+├── README.md               # This file
 └── DEPLOYMENT_GUIDE.md     # Full step-by-step deployment guide
 ```
 
@@ -81,4 +96,5 @@ Default (classpath fallback, used by local tests): `fixtures/masterlist_mock.bin
 
 ## See also
 
-For the complete deployment walkthrough — including first-time setup, fixture management, image updates, and useful troubleshooting commands — see **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**.
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** — Common commands and tasks at a glance
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** — Full step-by-step deployment walkthrough

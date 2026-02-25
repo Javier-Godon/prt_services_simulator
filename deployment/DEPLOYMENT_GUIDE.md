@@ -1,5 +1,43 @@
 # Deployment Guide — PRT Services Simulator
 
+## Quick start (automated)
+
+The fastest way to deploy: use the automated script!
+
+```bash
+./deployment/deploy.sh
+```
+
+This does everything:
+- ✅ Validates prerequisites (kubectl, fixture files)
+- ✅ Creates the namespace
+- ✅ Creates the Secret from `deployment/fixtures/`
+- ✅ Applies all Kubernetes manifests
+- ✅ Waits for the pod to be ready
+- ✅ Displays useful commands
+
+### With smoke test
+
+```bash
+./deployment/deploy.sh --smoke-test
+```
+
+This also runs basic tests against all three endpoints to verify everything works.
+
+### Custom namespace
+
+```bash
+./deployment/deploy.sh --namespace my-custom-namespace
+```
+
+### Undeploy
+
+```bash
+./deployment/undeploy.sh
+```
+
+---
+
 ## Overview
 
 This guide covers the full lifecycle of deploying `prt-services-simulator` to a Kubernetes cluster:
