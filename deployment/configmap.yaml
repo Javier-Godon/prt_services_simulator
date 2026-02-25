@@ -31,8 +31,10 @@ data:
         sfc-token: simulated-sfc-token-xyz789
 
       # Step 3: Certificate download
-      # Points to the volume mount path where ml_sample.bin is mounted.
-      # Change this if you mount the fixture at a different path.
+      # Points to the volume mount path where the fixture is mounted from the Secret.
+      # masterlist_es.bin  → real Spanish Master List (staging)
+      # masterlist_mock.bin → synthetic mock (safe for CI / public repos)
+      # Change this to switch which fixture is served by GET /certificates/csca.
       download:
-        fixture-file: /data/fixtures/ml_sample.bin
+        fixture-file: /data/fixtures/masterlist_es.bin
 

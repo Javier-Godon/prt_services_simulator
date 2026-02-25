@@ -52,11 +52,17 @@ dagger_go/railway-corporate-dagger-go
 dagger_go/test_run.log
 
 # ── Binary fixtures ───────────────────────────────────────────
-# ml_sample.bin IS committed — it is a synthetic test blob (NOT a real
-# ICAO certificate). All other .bin files are ignored.
+# src/main/resources/fixtures/masterlist_mock.bin IS committed — synthetic test blob
+# (NOT a real ICAO certificate) — safe for CI pipelines and public repos.
+# All other .bin files in src/ are ignored (e.g. ml_es.bin, real Master Lists).
 src/main/resources/fixtures/*.bin
-!src/main/resources/fixtures/ml_sample.bin
+!src/main/resources/fixtures/masterlist_mock.bin
 src/main/resources/fixtures/*.der
+
+# deployment/fixtures/ — NEVER commit (should stay local or on staging branch via manual process)
+# These fixture files are loaded imperatively into K8s Secrets, not committed.
+# If staging needs them, add via a separate mechanism (e.g., git-crypt, external storage).
+deployment/fixtures/
 
 # ── OS files ──────────────────────────────────────────────────
 .DS_Store

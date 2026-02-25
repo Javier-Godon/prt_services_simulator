@@ -25,10 +25,7 @@ spec:
 
       containers:
         - name: prt-services-simulator
-          image: ghcr.io/your-github-username/prt-services-simulator:latest
-          # Replace 'your-github-username' with your actual GitHub username,
-          # or set IMAGE_NAME when running the pipeline.
-
+          image: ghcr.io/Javier-Godon/prt-services-simulator:latest
           ports:
             - name: http
               containerPort: 8087
@@ -82,7 +79,7 @@ spec:
               mountPath: /config
               readOnly: true
 
-            # ml_sample.bin from Secret → external fixture file
+            # Fixture files from Secret → mounted at /data/fixtures/
             - name: fixture-volume
               mountPath: /data/fixtures
               readOnly: true
@@ -97,12 +94,16 @@ spec:
               - key: application.yaml
                 path: application.yaml
 
-        # Secret: binary ml_sample.bin fixture
+        # Secret: binary Master List fixture files
+        # masterlist_mock.bin → synthetic mock Master List (safe for CI / public repos)
+        # masterlist_es.bin   → real Spanish Master List (staging)
         - name: fixture-volume
           secret:
             secretName: prt-simulator-fixture
             items:
-              - key: ml_sample.bin
-                path: ml_sample.bin
+              - key: masterlist_mock.bin
+                path: masterlist_mock.bin
+              - key: masterlist_es.bin
+                path: masterlist_es.bin
 
 

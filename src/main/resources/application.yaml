@@ -25,5 +25,7 @@ simulator:
 
   # Step 3: Certificate download
   download:
-    # Path to a .bin fixture file to serve (relative to classpath)
-    fixture-file: fixtures/ml_es.bin
+    # Path to a .bin fixture file to serve (relative to classpath).
+    # masterlist_mock.bin is the synthetic committed fixture — always available in CI and public repos.
+    # Override in Kubernetes via ConfigMap to point at /data/fixtures/masterlist_es.bin.
+    fixture-file: fixtures/masterlist_mock.bin
