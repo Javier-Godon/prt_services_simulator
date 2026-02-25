@@ -1,6 +1,5 @@
 server:
   port: 0  # Random port for tests
-
 simulator:
   auth:
     expected-client-id: cert-parser-client
@@ -14,8 +13,9 @@ simulator:
     expected-passenger-control-type: 1
     sfc-token: simulated-sfc-token-xyz789
   download:
-    # masterlist_mock.bin is the synthetic committed fixture — always available in CI. -->It will fail
-#    fixture-file: fixtures/masterlist_mock.bin
-    # masterlist_es is the real ml.
-    fixture-file: fixtures/masterlist_es.bin
 
+
+    # masterlist_mock.bin is the synthetic committed fixture — always available in CI.
+    fixture-file: fixtures/masterlist_mock.bin
+    # masterlist_es.bin is the real ML — local only, gitignored, not available in CI.
+    # fixture-file: fixtures/masterlist_es.bin
