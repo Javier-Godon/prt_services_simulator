@@ -28,6 +28,7 @@ spec:
       containers:
         - name: prt-services-simulator
           image: ghcr.io/javier-godon/prt-services-simulator:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8087

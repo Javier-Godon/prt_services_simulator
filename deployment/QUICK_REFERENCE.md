@@ -8,6 +8,8 @@
 
 Done! The simulator is running.
 
+> **Note:** `imagePullPolicy: Always` is set, so `latest` tag is always pulled. Good for development. 🚀
+
 ---
 
 ## Available commands

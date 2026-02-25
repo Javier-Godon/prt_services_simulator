@@ -50,8 +50,9 @@ Changing **any** simulator parameter = edit `configmap.yaml` + `kubectl apply`.
 Changing **the active fixture** = change `simulator.download.fixture-file` in `configmap.yaml`.  
 Changing **the fixture binary** = recreate the Secret from `deployment/fixtures/` + rollout restart.
 
-> ℹ️ **`deployment/fixtures/`** is committed to the staging branch only.  
-> The Secret is always created imperatively from those files. See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+> ℹ️ **Image pull policy**: `imagePullPolicy: Always` is set in `deployment.yaml`.  
+> This ensures the `latest` tag is always pulled from the registry on each deploy, suitable for development.  
+> For production with pinned versions, use `imagePullPolicy: IfNotPresent`.
 
 ---
 
