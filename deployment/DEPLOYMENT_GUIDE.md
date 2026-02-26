@@ -107,9 +107,12 @@ kubectl create secret generic prt-simulator-fixture \
 kubectl apply -k deployment/
 ```
 
-This applies `namespace.yaml`, `configmap.yaml`, `deployment.yaml`, and `service.yaml`.
-Since the Secret already exists from Step 2, Kustomize reconciles only its metadata —
-it does **not** overwrite the binary data.
+This applies `namespace.yaml`, `configmap.yaml`, `deployment.yaml`, `service.yaml`, and `service-nodeport.yaml`.
+
+> ⚠️ `secret-fixture.yaml` is **intentionally excluded** from `kustomization.yaml`.
+> If it were included, `kubectl apply -k` would overwrite the binary secret data with empty strings
+> (the placeholder values kept in git), destroying the fixture files in the cluster.
+> The Secret is always managed imperatively — see Step 2 above.
 
 ### Step 4 — Verify
 

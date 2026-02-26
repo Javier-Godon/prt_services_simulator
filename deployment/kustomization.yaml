@@ -4,7 +4,10 @@ namespace: prt-simulator
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret-fixture.yaml
+  # secret-fixture.yaml is intentionally NOT listed here.
+  # The prt-simulator-fixture secret MUST be created/updated imperatively via deploy.sh
+  # or manually with: kubectl create secret generic prt-simulator-fixture --from-file=...
+  # Adding it here would cause `kubectl apply -k` to overwrite binary data with empty strings.
   - deployment.yaml
   - service.yaml
   - service-nodeport.yaml
