@@ -99,6 +99,7 @@ log_success "Connected to Kubernetes cluster"
 FIXTURES=(
   "masterlist_mock.bin"
   "masterlist_es.bin"
+  "ml_composite.bin"
 )
 
 for fixture in "${FIXTURES[@]}"; do
@@ -187,7 +188,8 @@ if ! kubectl get secret prt-simulator-fixture -n "$NAMESPACE" &> /dev/null; then
   kubectl create secret generic prt-simulator-fixture \
     --namespace "$NAMESPACE" \
     --from-file=masterlist_mock.bin="${FIXTURES_DIR}/masterlist_mock.bin" \
-    --from-file=masterlist_es.bin="${FIXTURES_DIR}/masterlist_es.bin"
+    --from-file=masterlist_es.bin="${FIXTURES_DIR}/masterlist_es.bin" \
+    --from-file=ml_composite.bin="${FIXTURES_DIR}/ml_composite.bin"
   log_success "Secret created"
 else
   log_warn "Secret already exists (not recreated)"

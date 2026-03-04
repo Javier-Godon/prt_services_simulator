@@ -100,6 +100,7 @@ spec:
         # Secret: binary Master List fixture files
         # masterlist_mock.bin → synthetic mock Master List (safe for CI / public repos)
         # masterlist_es.bin   → real Spanish Master List (staging)
+        # ml_composite.bin    → composite Master List (current deployment fixture)
         - name: fixture-volume
           secret:
             secretName: prt-simulator-fixture
@@ -108,5 +109,7 @@ spec:
                 path: masterlist_mock.bin
               - key: masterlist_es.bin
                 path: masterlist_es.bin
+              - key: ml_composite.bin
+                path: ml_composite.bin
 
 

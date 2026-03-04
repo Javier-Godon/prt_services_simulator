@@ -34,7 +34,8 @@ data:
       # Points to the volume mount path where the fixture is mounted from the Secret.
       # masterlist_es.bin  → real Spanish Master List (staging)
       # masterlist_mock.bin → synthetic mock (safe for CI / public repos)
+      # ml_composite.bin   → composite master list (current deployment fixture)
       # Change this to switch which fixture is served by GET /certificates/csca.
       download:
-        fixture-file: /data/fixtures/masterlist_es.bin
+        fixture-file: /data/fixtures/ml_composite.bin
 
