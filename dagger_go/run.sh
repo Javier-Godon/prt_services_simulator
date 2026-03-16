@@ -27,7 +27,8 @@ fi
 echo "🚀 Running PRT Services Simulator CI/CD Pipeline"
 echo "   Repository: ${REPO_NAME:-prt_services_simulator}"
 echo "   Image Name: ${IMAGE_NAME:-prt_services_simulator}"
-echo "   GitHub User: $USERNAME"
+echo "   Git Host:   ${GIT_HOST:-github.com}"
+echo "   Registry:   ${REGISTRY:-ghcr.io}/${REGISTRY_USERNAME:-$USERNAME}"
 echo ""
 
 # Check if binary exists, build if not

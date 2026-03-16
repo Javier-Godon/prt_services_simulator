@@ -62,17 +62,16 @@ Clone Repository
     ↓
 🐳 Dockerize (create container image)
     ↓
-📤 Publish to GitHub Container Registry
+📤 Publish to container registry (ghcr.io by default — configurable)
 ```
 
 ---
 
 ## 🎯 Key Features
 
-✅ **Independent Test Control**
-- Run unit tests only: `RUN_INTEGRATION_TESTS=false ./run.sh` (5-10s)
-- Run integration tests: `RUN_UNIT_TESTS=false ./run.sh` (30-45s)
-- Run full suite: `./run.sh` (40-60s, default)
+✅ **Registry & Hosting Agnostic**
+- Works with GitHub + GHCR (defaults), GitLab, Bitbucket, Docker Hub, self-hosted registries
+- Configure via `GIT_HOST`, `REGISTRY`, `REGISTRY_USERNAME`, `GIT_AUTH_USERNAME`
 
 ✅ **Docker Integration**
 - Automatic Docker detection
@@ -83,7 +82,7 @@ Clone Repository
 - Fully compiled Go binary (20MB, no dependencies)
 - Error handling and validation
 - Comprehensive logging
-- GitHub Container Registry support
+- Configurable container registry publish
 
 ✅ **No External Dependencies**
 - ❌ Dagger CLI NOT required (Go SDK included)
@@ -111,34 +110,34 @@ The pipeline automatically adapts based on configuration:
 ### Workflow A: Run Full Pipeline (Default)
 ```bash
 cd dagger_go
-export CR_PAT="your_github_token"
-export USERNAME="your_github_username"
+set -a && source credentials/.env && set +a
 ./run.sh
 ```
-**Result**: Full test suite (unit + integration with Docker) → Build → Deploy
+**Result**: All MockMvc tests → Build JAR → Docker image → Publish to registry
 
-### Workflow B: Fast PR Checks (Unit Tests Only)
+### Workflow B: Corporate / Proxy Environment
 ```bash
 cd dagger_go
-export CR_PAT="your_github_token"
-export USERNAME="your_github_username"
-RUN_INTEGRATION_TESTS=false ./run.sh
+set -a && source credentials/.env && set +a
+./run-corporate.sh
 ```
-**Result**: Unit tests only (5-10 seconds, no Docker needed)
+**Result**: Same as above, with automatic CA certificate discovery and proxy support
 
-### Workflow C: Focused Integration Testing
+### Workflow C: Different Git Host or Registry
 ```bash
+# Add to credentials/.env:
+# GIT_HOST=gitlab.com
+# GIT_AUTH_USERNAME=oauth2
+# REGISTRY=registry.gitlab.com
 cd dagger_go
-export CR_PAT="your_github_token"
-export USERNAME="your_github_username"
-RUN_UNIT_TESTS=false ./run.sh
+set -a && source credentials/.env && set +a
+./run.sh
 ```
-**Result**: Integration tests only (30-45 seconds, requires Docker)
 
 ### Workflow D: Debug Code Locally
 Open VSC and press `F5` → Select "Debug Dagger Go"
 
-See [guides/BUILD_AND_RUN.md#debug](guides/BUILD_AND_RUN.md#debug-your-code-vsc) for full instructions
+See [guides/BUILD_AND_RUN.md](guides/BUILD_AND_RUN.md) for full instructions
 
 ---
 
@@ -158,7 +157,7 @@ See [guides/BUILD_AND_RUN.md#debug](guides/BUILD_AND_RUN.md#debug-your-code-vsc)
 
 ```bash
 ✅ Go 1.22+
-✅ Docker (for integration tests, optional for unit)
+✅ Docker (required)
 ✅ credentials/.env with CR_PAT and USERNAME
 ❌ Dagger CLI (NOT required)
 ❌ Maven (runs in container)
@@ -168,8 +167,8 @@ See [guides/BUILD_AND_RUN.md#debug](guides/BUILD_AND_RUN.md#debug-your-code-vsc)
 Verify:
 ```bash
 go version              # Should show go1.22+
-docker ps              # Should work
-cat credentials/.env   # Should show CR_PAT=... USERNAME=...
+docker ps               # Should work
+cat credentials/.env    # Should show CR_PAT=... USERNAME=...
 ```
 
 ---
@@ -263,7 +262,7 @@ A: [guides/BUILD_AND_RUN.md](guides/BUILD_AND_RUN.md) has complete practical ins
 
 1. ✅ Read [QUICKSTART.md](QUICKSTART.md) (3 minutes)
 2. ✅ Read [guides/BUILD_AND_RUN.md](guides/BUILD_AND_RUN.md) - Quick Reference section
-3. ✅ Set up: `export CR_PAT="your_token" && export USERNAME="your_name"`
+3. ✅ Set up: `cat > credentials/.env << EOF\nCR_PAT=your_token\nUSERNAME=your_username\nEOF`
 4. ✅ Try: `cd dagger_go && RUN_INTEGRATION_TESTS=false ./run.sh` (unit tests only)
 5. ✅ Try: `cd dagger_go && ./run.sh` (full suite with Docker)
 
@@ -281,7 +280,7 @@ A: [guides/BUILD_AND_RUN.md](guides/BUILD_AND_RUN.md) has complete practical ins
 ---
 
 **Status**: ✅ Production Ready
-**Last Updated**: November 23, 2025
+**Last Updated**: March 16, 2026
 
 **Recommended Solution**: SOLUTION 2 + SOLUTION 4
 - ✅ Docker socket binding (Solution 1)

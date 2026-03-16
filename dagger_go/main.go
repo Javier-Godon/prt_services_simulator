@@ -23,12 +23,16 @@ const (
 
 // SimulatorPipeline represents the PRT Services Simulator CI/CD pipeline
 type SimulatorPipeline struct {
-	RepoName   string
-	ImageName  string
-	GitRepo    string
-	GitBranch  string
-	GitUser    string
-	MavenCache *dagger.CacheVolume
+	RepoName        string
+	ImageName       string
+	GitRepo         string
+	GitBranch       string
+	GitUser         string
+	GitHost         string // e.g. github.com, gitlab.com, bitbucket.org
+	GitAuthUsername string // HTTP auth username for cloning (x-access-token for GitHub PAT, oauth2 for GitLab)
+	Registry        string // container registry host, e.g. ghcr.io, docker.io, registry.gitlab.com
+	RegistryUser    string // registry namespace / org (defaults to GitUser)
+	MavenCache      *dagger.CacheVolume
 }
 
 // main runs the PRT Services Simulator CI/CD pipeline
@@ -50,10 +54,31 @@ func main() {
 		repoName = "prt_services_simulator"
 	}
 
+	gitHost := os.Getenv("GIT_HOST")
+	if gitHost == "" {
+		gitHost = "github.com"
+	}
+
+	gitAuthUsername := os.Getenv("GIT_AUTH_USERNAME")
+	if gitAuthUsername == "" {
+		gitAuthUsername = "x-access-token" // default for GitHub PAT; use "oauth2" for GitLab
+	}
+
+	registry := os.Getenv("REGISTRY")
+	if registry == "" {
+		registry = "ghcr.io"
+	}
+
+	username := os.Getenv("USERNAME")
+
+	registryUser := os.Getenv("REGISTRY_USERNAME")
+	if registryUser == "" {
+		registryUser = username
+	}
+
 	gitRepo := os.Getenv("GIT_REPO")
 	if gitRepo == "" {
-		username := os.Getenv("USERNAME")
-		gitRepo = fmt.Sprintf("https://github.com/%s/%s.git", username, repoName)
+		gitRepo = fmt.Sprintf("https://%s/%s/%s.git", gitHost, username, repoName)
 	}
 
 	gitBranch := os.Getenv("GIT_BRANCH")
@@ -68,6 +93,7 @@ func main() {
 
 	fmt.Printf("🚀 Starting %s CI/CD Pipeline (Go SDK v0.19.7)...\n", repoName)
 	fmt.Printf("   Repository: %s (branch: %s)\n", gitRepo, gitBranch)
+	fmt.Printf("   Registry:   %s/%s\n", registry, strings.ToLower(registryUser))
 
 	// Initialize Dagger client
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stderr))
@@ -78,11 +104,15 @@ func main() {
 	defer client.Close()
 
 	pipeline := &SimulatorPipeline{
-		RepoName:  repoName,
-		ImageName: imageNameEnv,
-		GitRepo:   gitRepo,
-		GitBranch: gitBranch,
-		GitUser:   os.Getenv("USERNAME"),
+		RepoName:        repoName,
+		ImageName:       imageNameEnv,
+		GitRepo:         gitRepo,
+		GitBranch:       gitBranch,
+		GitUser:         username,
+		GitHost:         gitHost,
+		GitAuthUsername: gitAuthUsername,
+		Registry:        registry,
+		RegistryUser:    registryUser,
 	}
 
 	// Run pipeline stages
@@ -97,16 +127,16 @@ func main() {
 // run executes the complete CI/CD pipeline:
 // Clone → Test → Build JAR → Docker Build → Publish to GHCR
 func (p *SimulatorPipeline) run(ctx context.Context, client *dagger.Client) error {
-	// ── Clone repository from GitHub ─────────────────────────────
+	// ── Clone repository ──────────────────────────────────────────
 	fmt.Printf("📥 Cloning repository: %s (branch: %s)\n", p.GitRepo, p.GitBranch)
 
-	gitURL := fmt.Sprintf("https://github.com/%s/%s.git", p.GitUser, p.RepoName)
-	crPAT := client.SetSecret("github-pat", os.Getenv("CR_PAT"))
+	gitURL := fmt.Sprintf("https://%s/%s/%s.git", p.GitHost, p.GitUser, p.RepoName)
+	crPAT := client.SetSecret("git-pat", os.Getenv("CR_PAT"))
 
 	repo := client.Git(gitURL, dagger.GitOpts{
 		KeepGitDir:       true,
 		HTTPAuthToken:    crPAT,
-		HTTPAuthUsername: "x-access-token",
+		HTTPAuthUsername: p.GitAuthUsername,
 	})
 
 	source := repo.Branch(p.GitBranch).Tree()
@@ -201,26 +231,26 @@ func (p *SimulatorPipeline) run(ctx context.Context, client *dagger.Client) erro
 
 	// Docker-safe naming
 	imageNameClean := strings.ToLower(strings.ReplaceAll(p.ImageName, "_", "-"))
-	username := p.GitUser
-	imageName := fmt.Sprintf("ghcr.io/%s/%s:%s", strings.ToLower(username), imageNameClean, imageTag)
-	latestImageName := fmt.Sprintf("ghcr.io/%s/%s:latest", strings.ToLower(username), imageNameClean)
+	registryUser := strings.ToLower(p.RegistryUser)
+	imageName := fmt.Sprintf("%s/%s/%s:%s", p.Registry, registryUser, imageNameClean, imageTag)
+	latestImageName := fmt.Sprintf("%s/%s/%s:latest", p.Registry, registryUser, imageNameClean)
 
-	// ── Stage 4: Publish to GHCR ─────────────────────────────────
+	// ── Stage 4: Publish to registry ─────────────────────────────
 	fmt.Println("\n" + strings.Repeat("=", 80))
-	fmt.Println("PIPELINE STAGE 4: PUBLISH TO GHCR")
+	fmt.Printf("PIPELINE STAGE 4: PUBLISH TO %s\n", strings.ToUpper(p.Registry))
 	fmt.Println(strings.Repeat("=", 80))
 	fmt.Printf("📤 Publishing to: %s\n", imageName)
 
 	password := client.SetSecret("password", os.Getenv("CR_PAT"))
 	publishedAddress, err := image.
-		WithRegistryAuth("ghcr.io", username, password).
+		WithRegistryAuth(p.Registry, p.RegistryUser, password).
 		Publish(ctx, imageName)
 	if err != nil {
 		return fmt.Errorf("failed to publish versioned image: %w", err)
 	}
 
 	latestAddress, err := image.
-		WithRegistryAuth("ghcr.io", username, password).
+		WithRegistryAuth(p.Registry, p.RegistryUser, password).
 		Publish(ctx, latestImageName)
 	if err != nil {
 		return fmt.Errorf("failed to publish latest image: %w", err)

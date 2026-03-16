@@ -46,7 +46,7 @@ Ctrl+Shift+P → Tasks: Run Task → Run Dagger Pipeline
 Watch terminal:
 - 📦 Maven builds Java project
 - 🐳 Docker builds container image
-- 📤 Image pushed to GitHub Container Registry
+- 📤 Image pushed to container registry (GHCR by default)
 - ✅ Pipeline complete
 
 **That's it! Your Dagger Go CI/CD pipeline is running.**
@@ -484,8 +484,12 @@ Add to `.vscode/settings.json`:
 Add to `~/.zshrc` or `~/.bash_profile`:
 
 ```bash
-export CR_PAT="ghp_xxxxxxxxxxxx"
-export USERNAME="your-github-username"
+export CR_PAT="your_token"
+export USERNAME="your_username"
+# Optional — only needed when not using GitHub/GHCR defaults:
+# export GIT_HOST=gitlab.com
+# export GIT_AUTH_USERNAME=oauth2
+# export REGISTRY=registry.gitlab.com
 ```
 
 ## Project Structure in VSC
@@ -854,7 +858,7 @@ Ctrl+Shift+P → Tasks: Run Task → Run Dagger Pipeline
 
 - Loads `credentials/.env` automatically ✅
 - Builds Docker image ✅
-- Pushes to GitHub Container Registry ✅
+- Pushes to container registry (GHCR by default) ✅
 - Deploys to Kubernetes (if configured) ✅
 
 **That's it! No manual credential configuration needed.**
@@ -1064,7 +1068,7 @@ cd ${workspaceFolder}/dagger_go && ./run.sh
    - Builds Maven package (`mvn clean package`)
    - Creates Docker image
    - Tags with git SHA
-   - Pushes to GitHub Container Registry
+   - Pushes to container registry (GHCR by default)
    - Logs to CloudWatch (if configured)
    - Cleans up temporary resources
 
@@ -1161,8 +1165,10 @@ go mod tidy
 ```bash
 # Solution: Create .env file in credentials directory
 cat > credentials/.env << EOF
-CR_PAT=ghp_xxxxxxxxxxxx
-USERNAME=your-github-username
+CR_PAT=your_token
+USERNAME=your_username
+# GIT_HOST=gitlab.com          # optional — default: github.com
+# REGISTRY=registry.gitlab.com # optional — default: ghcr.io
 EOF
 
 # Then reload in terminal
@@ -1258,7 +1264,7 @@ Before running pipelines, verify:
 - [ ] `credentials/.env` exists with `CR_PAT` and `USERNAME`
 - [ ] All `.vscode/` config files in place
 - [ ] `dagger_go/test.sh` and `run.sh` are executable
-- [ ] Network connection to GitHub Container Registry
+- [ ] Network connection to container registry (GHCR by default)
 
 **All checks passing? Ready to build and deploy! ✅**
 

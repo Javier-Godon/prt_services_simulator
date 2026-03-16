@@ -39,7 +39,23 @@ The corporate pipeline **automatically discovers CA certificates** from:
 
 ---
 
-## Setup Corporate Pipeline (2 minutes)
+## Platform Quick Reference
+
+| Platform | `GIT_HOST` | `GIT_AUTH_USERNAME` | `REGISTRY` |
+|---|---|---|---|
+| **GitHub** _(default)_ | `github.com` | `x-access-token` | `ghcr.io` |
+| **GitLab.com** | `gitlab.com` | `oauth2` | `registry.gitlab.com` |
+| **Self-hosted GitLab** | `gitlab.myco.com` | `oauth2` | `gitlab.myco.com:5050` |
+| **Bitbucket Cloud** | `bitbucket.org` | `x-token-auth` | `docker.io` |
+| **Gitea** | `gitea.myco.com` | _(your username)_ | `docker.io` or custom |
+| **Docker Hub** | any | any | `docker.io` |
+
+> `CR_PAT` is always your personal access token for both git clone auth and registry push.  
+> Set `REGISTRY_USERNAME` only when your registry namespace differs from your git `USERNAME`.
+
+---
+
+
 
 ### 1. Create directories
 ```bash
@@ -70,7 +86,7 @@ EOF
 ### 4. Run corporate pipeline
 ```bash
 cd dagger_go
-set -a && source ../credentials/.env && set +a
+set -a && source credentials/.env && set +a
 ./run-corporate.sh
 ```
 
@@ -152,25 +168,32 @@ echo | openssl s_client -showcerts -servername docker.io \
 ## Environment Variables (Optional)
 
 ```bash
-# Auto-discovered - NO setup needed for these:
-# - Linux: /etc/ssl/certs/ca-bundle.crt (auto-used)
-# - macOS: /etc/ssl/cert.pem (auto-used)
-# - Any .pem files in credentials/certs/ (auto-discovered)
+# ── Always required ──────────────────────────────────────────────────────────
+CR_PAT=your_token          # Personal Access Token (write access to registry)
+USERNAME=your_username     # Username on the git hosting platform
 
-# Only set if you need additional certificates:
-CA_CERTIFICATES_PATH=/path/to/cert1.pem:/path/to/cert2.pem
+# ── Git hosting (defaults work for GitHub) ───────────────────────────────────
+# GIT_HOST=github.com               # Change to gitlab.com, bitbucket.org, etc.
+# GIT_AUTH_USERNAME=x-access-token  # oauth2 for GitLab PAT, x-token-auth for Bitbucket
+# GIT_REPO=https://...              # Full URL override (auto-built if unset)
+# GIT_BRANCH=main
+# REPO_NAME=prt_services_simulator
 
-# Proxy settings (optional, only if corporate proxy is present):
-HTTP_PROXY=http://proxy.company.com:8080
-HTTPS_PROXY=https://proxy.company.com:8080
-NO_PROXY=localhost,127.0.0.1,.local
+# ── Container registry (defaults work for GHCR) ──────────────────────────────
+# REGISTRY=ghcr.io                  # docker.io, registry.gitlab.com, etc.
+# REGISTRY_USERNAME=                # Overrides USERNAME for the registry namespace/org
+# IMAGE_NAME=prt-services-simulator
 
-# GitHub credentials (always required):
-CR_PAT=your_github_token
-USERNAME=your_github_username
+# ── CA certificate discovery (optional) ──────────────────────────────────────
+# CA_CERTIFICATES_PATH=/path/cert1.pem:/path/cert2.pem
 
-# Debug mode (optional, for troubleshooting):
-DEBUG_CERTS=true
+# ── Proxy (optional, only if a corporate proxy is present) ───────────────────
+# HTTP_PROXY=http://proxy.company.com:8080
+# HTTPS_PROXY=https://proxy.company.com:8080
+# NO_PROXY=localhost,127.0.0.1,.local
+
+# ── Debug mode (optional, for troubleshooting) ───────────────────────────────
+# DEBUG_CERTS=true
 ```
 
 ---
@@ -242,5 +265,6 @@ ls -lh credentials/certs/
 ---
 
 **Created**: November 22, 2025
+**Last Updated**: March 16, 2026
 **Status**: Ready to use
 **Original pipeline**: Completely safe ✅

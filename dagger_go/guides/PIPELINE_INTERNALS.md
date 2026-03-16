@@ -122,13 +122,21 @@ class CatalogRepositoryImplIntegrationTest {
 }
 ```
 
-### 5. **RailwayPipeline Updates**
+### 5. **SimulatorPipeline Updates**
 
-Added new field:
+Added new fields:
 ```go
-type RailwayPipeline struct {
-    // ... existing fields ...
-    HasDocker bool // Docker availability for testcontainers
+type SimulatorPipeline struct {
+    RepoName        string
+    ImageName       string
+    GitRepo         string
+    GitBranch       string
+    GitUser         string
+    GitHost         string   // e.g. github.com, gitlab.com, bitbucket.org
+    GitAuthUsername string   // HTTP auth username for clone (x-access-token / oauth2)
+    Registry        string   // Container registry host (ghcr.io, docker.io, …)
+    RegistryUser    string   // Registry namespace/org (defaults to GitUser)
+    MavenCache      *dagger.CacheVolume
 }
 ```
 
@@ -181,21 +189,30 @@ type RailwayPipeline struct {
 
 ### Stage 6: Publish ✅ (existing)
 ```
-📤 Publishing to: ghcr.io/user/railway:v1.0.0-abc1234-20251123
+📤 Publishing to: ghcr.io/user/prt-services-simulator:v0.1.0-abc1234-20260316
+   (registry and namespace resolved from REGISTRY / REGISTRY_USERNAME env vars)
 ✅ Images published
 ```
 
 ## Environment Variables
 
 ### Required
-- `CR_PAT` - GitHub Container Registry Personal Access Token
-- `USERNAME` - GitHub username
+- `CR_PAT` - Personal Access Token with write access to your container registry
+- `USERNAME` - Username on the git hosting platform
 
-### Optional
-- `REPO_NAME` - Repository name (default: "railway_oriented_java")
-- `GIT_REPO` - Full Git repository URL
-- `GIT_BRANCH` - Branch to clone (default: "main")
-- `IMAGE_NAME` - Docker image name (default: REPO_NAME)
+### Optional — Git Hosting
+- `GIT_HOST` - Git server hostname (default: `github.com`; use `gitlab.com`, `bitbucket.org`, etc.)
+- `GIT_AUTH_USERNAME` - HTTP auth username for clone (default: `x-access-token` for GitHub PAT; use `oauth2` for GitLab)
+- `GIT_REPO` - Full git URL override (auto-built from GIT_HOST/USERNAME/REPO_NAME if unset)
+- `GIT_BRANCH` - Branch to clone (default: `main`)
+- `REPO_NAME` - Repository name (default: `prt_services_simulator`)
+
+### Optional — Container Registry
+- `REGISTRY` - Container registry host (default: `ghcr.io`; use `docker.io`, `registry.gitlab.com`, etc.)
+- `REGISTRY_USERNAME` - Registry namespace/org (default: same as USERNAME)
+- `IMAGE_NAME` - Docker image name (default: same as REPO_NAME)
+
+### Optional — Pipeline Behaviour
 - `DEPLOY_WEBHOOK` - Deployment webhook URL
 
 ## Java Test Setup Required

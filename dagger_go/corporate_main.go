@@ -29,6 +29,10 @@ type CorporatePipeline struct {
 	GitRepo             string
 	GitBranch           string
 	GitUser             string
+	GitHost             string   // e.g. github.com, gitlab.com, bitbucket.org
+	GitAuthUsername     string   // HTTP auth username for cloning (x-access-token for GitHub PAT, oauth2 for GitLab)
+	Registry            string   // container registry host, e.g. ghcr.io, docker.io, registry.gitlab.com
+	RegistryUser        string   // registry namespace / org (defaults to GitUser)
 	MavenCache          *dagger.CacheVolume
 	ContainerImg        *dagger.Container
 	HasDocker           bool     // Docker availability for testcontainers
@@ -84,10 +88,31 @@ func main() {
 		repoName = "prt_services_simulator"
 	}
 
+	gitHost := os.Getenv("GIT_HOST")
+	if gitHost == "" {
+		gitHost = "github.com"
+	}
+
+	gitAuthUsername := os.Getenv("GIT_AUTH_USERNAME")
+	if gitAuthUsername == "" {
+		gitAuthUsername = "x-access-token" // default for GitHub PAT; use "oauth2" for GitLab
+	}
+
+	registry := os.Getenv("REGISTRY")
+	if registry == "" {
+		registry = "ghcr.io"
+	}
+
+	username := os.Getenv("USERNAME")
+
+	registryUser := os.Getenv("REGISTRY_USERNAME")
+	if registryUser == "" {
+		registryUser = username
+	}
+
 	gitRepo := os.Getenv("GIT_REPO")
 	if gitRepo == "" {
-		username := os.Getenv("USERNAME")
-		gitRepo = fmt.Sprintf("https://github.com/%s/%s.git", username, repoName)
+		gitRepo = fmt.Sprintf("https://%s/%s/%s.git", gitHost, username, repoName)
 	}
 
 	gitBranch := os.Getenv("GIT_BRANCH")
@@ -112,6 +137,7 @@ func main() {
 
 	fmt.Printf("🚀 Starting %s CI/CD Pipeline (Go SDK v0.19.7 - Corporate Mode)...\n", repoName)
 	fmt.Printf("   Repository: %s (branch: %s)\n", gitRepo, gitBranch)
+	fmt.Printf("   Registry:   %s/%s\n", registry, strings.ToLower(registryUser))
 	fmt.Println("🧪 Test Configuration:")
 	fmt.Printf("   Unit tests: %v (override with RUN_UNIT_TESTS=false)\n", runUnitTests)
 	fmt.Printf("   Integration tests: %v (override with RUN_INTEGRATION_TESTS=false)\n", runIntegrationTests)
@@ -125,7 +151,7 @@ func main() {
 	defer client.Close()
 
 	// Collect CA certificates from credentials/certs/
-	caCertPaths := collectCACertificates()
+	caCertPaths := collectCACertificates(registry)
 	if len(caCertPaths) > 0 {
 		fmt.Printf("   📜 Found %d CA certificate path(s)\n", len(caCertPaths))
 		validCerts := 0
@@ -155,6 +181,10 @@ func main() {
 		GitRepo:             gitRepo,
 		GitBranch:           gitBranch,
 		GitUser:             os.Getenv("USERNAME"),
+		GitHost:             gitHost,
+		GitAuthUsername:     gitAuthUsername,
+		Registry:            registry,
+		RegistryUser:        registryUser,
 		RunUnitTests:        runUnitTests,
 		RunIntegrationTests: runIntegrationTests,
 		CACertPaths:         caCertPaths,
@@ -178,8 +208,13 @@ func main() {
 	fmt.Println("\n🎉 Corporate pipeline completed successfully!")
 }
 
-// collectCACertificates auto-discovers certificates from multiple sources
-func collectCACertificates() []string {
+// collectCACertificates auto-discovers certificates from multiple sources.
+// registry is the container registry host (e.g. ghcr.io, docker.io) used to
+// probe registry-specific certificate directories on the local machine.
+func collectCACertificates(registry string) []string {
+	if registry == "" {
+		registry = "ghcr.io"
+	}
 	var certPaths []string
 	discoveredCerts := make(map[string]bool) // Track unique certificates
 
@@ -253,9 +288,9 @@ func collectCACertificates() []string {
 		// macOS
 		"/etc/ssl/cert.pem",
 		"/usr/local/etc/openssl/cert.pem",
-		// macOS Docker Desktop / Rancher Desktop
+		// macOS Docker Desktop / Rancher Desktop — scan docker.io + configured registry
 		filepath.Join(os.Getenv("HOME"), ".docker/certs.d/docker.io/ca.pem"),
-		filepath.Join(os.Getenv("HOME"), ".docker/certs.d/ghcr.io/ca.pem"),
+		filepath.Join(os.Getenv("HOME"), ".docker/certs.d/"+registry+"/ca.pem"),
 		filepath.Join(os.Getenv("HOME"), ".docker/certs.d"),
 		filepath.Join(os.Getenv("HOME"), ".rancher/certs.d"),
 		// macOS Docker Desktop Group Containers (sandboxed storage)
@@ -266,9 +301,9 @@ func collectCACertificates() []string {
 		// Windows native paths
 		`C:\ProgramData\Microsoft\Windows\Certificates\ca-certificates.pem`,
 		`C:\Users\` + username + `\AppData\Local\Corporate_Certificates\ca-bundle.pem`,
-		// Docker Desktop on Windows
+		// Docker Desktop on Windows — docker.io + configured registry
 		`C:\Users\` + username + `\.docker\certs.d\docker.io\ca.pem`,
-		`C:\Users\` + username + `\.docker\certs.d\ghcr.io\ca.pem`,
+		`C:\Users\` + username + `\.docker\certs.d\` + registry + `\ca.pem`,
 		`C:\Users\` + username + `\.docker\certs.d`,
 		// Rancher Desktop on Windows
 		`C:\Users\` + username + `\.rancher\certs.d`,
@@ -659,7 +694,7 @@ curl -v https://registry-1.docker.io/v2/ 2>&1 | head -30 || true
 echo ""
 
 echo "=== Testing GitHub Container Registry connectivity ==="
-curl -v https://ghcr.io/v2/ 2>&1 | head -30 || true
+curl -v https://` + cp.Registry + `/v2/ 2>&1 | head -30 || true
 echo ""
 
 echo "=== Testing Cloudflare R2 CDN (Docker Hub images) ==="
@@ -671,9 +706,9 @@ echo | openssl s_client -servername registry-1.docker.io \
   -connect registry-1.docker.io:443 2>&1 | grep -E "subject=|issuer=|Verify return code" || true
 echo ""
 
-echo "=== Certificate Verification (ghcr.io) ==="
-echo | openssl s_client -servername ghcr.io \
-  -connect ghcr.io:443 2>&1 | grep -E "subject=|issuer=|Verify return code" || true
+echo "=== Certificate Verification (` + cp.Registry + `) ==="
+echo | openssl s_client -servername ` + cp.Registry + ` \
+  -connect ` + cp.Registry + `:443 2>&1 | grep -E "subject=|issuer=|Verify return code" || true
 `})
 
 	output, err := diagnostic.Stdout(ctx)
@@ -786,13 +821,13 @@ fi
 // getRepositorySource clones and returns the source tree
 func (cp *CorporatePipeline) getRepositorySource(ctx context.Context, client *dagger.Client) (*dagger.Directory, string) {
 	fmt.Println("🔖 Getting Git repository...")
-	gitURL := fmt.Sprintf("https://github.com/%s/%s.git", cp.GitUser, cp.RepoName)
-	crPAT := client.SetSecret("github-pat", os.Getenv("CR_PAT"))
+	gitURL := fmt.Sprintf("https://%s/%s/%s.git", cp.GitHost, cp.GitUser, cp.RepoName)
+	crPAT := client.SetSecret("git-pat", os.Getenv("CR_PAT"))
 
 	repo := client.Git(gitURL, dagger.GitOpts{
 		KeepGitDir:       true,
 		HTTPAuthToken:    crPAT,
-		HTTPAuthUsername: "x-access-token",
+		HTTPAuthUsername: cp.GitAuthUsername,
 	})
 
 	commitSHA, _ := repo.Branch(cp.GitBranch).Commit(ctx)
@@ -920,7 +955,7 @@ func (cp *CorporatePipeline) runBuildStage(ctx context.Context, builder *dagger.
 // buildAndPublish builds Docker image and publishes to registry
 func (cp *CorporatePipeline) buildAndPublish(ctx context.Context, client *dagger.Client, buildContainer *dagger.Container, appPath, commitSHA string) error {
 	fmt.Println("\n" + strings.Repeat("=", 80))
-	fmt.Println("PIPELINE STAGE 3: BUILD DOCKER IMAGE")
+	fmt.Printf("PIPELINE STAGE 3: PUBLISH TO %s\n", strings.ToUpper(cp.Registry))
 	fmt.Println(strings.Repeat("=", 80))
 	fmt.Println("🐳 Building Docker image...")
 
@@ -930,21 +965,21 @@ func (cp *CorporatePipeline) buildAndPublish(ctx context.Context, client *dagger
 	imageTag := fmt.Sprintf("v1.0.0-%s-%s", shortSHA, timestamp)
 
 	imageNameClean := strings.ToLower(strings.ReplaceAll(cp.ImageName, "_", "-"))
-	usernameLower := strings.ToLower(cp.GitUser)
-	imageName := fmt.Sprintf("ghcr.io/%s/%s:%s", usernameLower, imageNameClean, imageTag)
-	latestImageName := fmt.Sprintf("ghcr.io/%s/%s:latest", usernameLower, imageNameClean)
+	registryUserLower := strings.ToLower(cp.RegistryUser)
+	imageName := fmt.Sprintf("%s/%s/%s:%s", cp.Registry, registryUserLower, imageNameClean, imageTag)
+	latestImageName := fmt.Sprintf("%s/%s/%s:latest", cp.Registry, registryUserLower, imageNameClean)
 
 	fmt.Printf("📤 Publishing to: %s\n", imageName)
 	password := client.SetSecret("password", os.Getenv("CR_PAT"))
 
 	// Note: WithRegistryAuth username parameter must be string (Dagger API limitation)
 	// Username will appear in logs, but this is unavoidable with current Dagger API
-	pubAddr, err := image.WithRegistryAuth("ghcr.io", cp.GitUser, password).Publish(ctx, imageName)
+	pubAddr, err := image.WithRegistryAuth(cp.Registry, cp.RegistryUser, password).Publish(ctx, imageName)
 	if err != nil {
 		return fmt.Errorf("failed to publish versioned image: %w", err)
 	}
 
-	latestAddr, err := image.WithRegistryAuth("ghcr.io", cp.GitUser, password).Publish(ctx, latestImageName)
+	latestAddr, err := image.WithRegistryAuth(cp.Registry, cp.RegistryUser, password).Publish(ctx, latestImageName)
 	if err != nil {
 		return fmt.Errorf("failed to publish latest image: %w", err)
 	}

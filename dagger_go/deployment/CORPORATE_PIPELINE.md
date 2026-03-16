@@ -61,14 +61,14 @@ ls -lh credentials/certs/
 cd dagger_go
 
 # Option A: Normal run
-set -a && source ../credentials/.env && set +a
+set -a && source credentials/.env && set +a
 ./run-corporate.sh
 
 # Option B: With certificate diagnostics
 DEBUG_CERTS=true ./run-corporate.sh
 
-# Option C: With verbose output
-set -a && source ../credentials/.env && set +a
+# Option C: With verbose output saved to file
+set -a && source credentials/.env && set +a
 DEBUG_CERTS=true ./run-corporate.sh 2>&1 | tee corporate-pipeline.log
 ```
 
@@ -177,11 +177,11 @@ cp proxy-mitm-ca.pem credentials/certs/
 
 ```bash
 # Use ORIGINAL working pipeline (no changes)
-set -a && source ../credentials/.env && set +a
+set -a && source credentials/.env && set +a
 ./run.sh
 
 # Use CORPORATE pipeline (with CA/proxy support)
-set -a && source ../credentials/.env && set +a
+set -a && source credentials/.env && set +a
 ./run-corporate.sh
 
 # Both work independently - no interference
@@ -344,25 +344,33 @@ cp proxy-cert.pem credentials/certs/
 
 ### Required
 ```bash
-CR_PAT=ghp_your_github_token        # GitHub Personal Access Token
-USERNAME=your_github_username       # GitHub username
+CR_PAT=your_token          # Personal Access Token (write access to container registry)
+USERNAME=your_username     # Username on the git hosting platform
 ```
 
-### Optional - Proxy Configuration
+### Optional — Git Hosting
+```bash
+GIT_HOST=github.com                # Git server hostname (gitlab.com, bitbucket.org, …)
+GIT_AUTH_USERNAME=x-access-token   # HTTP auth user for clone (oauth2 for GitLab PAT)
+GIT_REPO=https://...               # Full URL override (auto-built if unset)
+GIT_BRANCH=main                    # Branch to build
+REPO_NAME=prt_services_simulator   # Repository name
+```
+
+### Optional — Container Registry
+```bash
+REGISTRY=ghcr.io                   # Registry host (docker.io, registry.gitlab.com, …)
+REGISTRY_USERNAME=                 # Registry namespace/org (defaults to USERNAME)
+IMAGE_NAME=prt-services-simulator  # Docker image name (defaults to REPO_NAME)
+```
+
+### Optional — Proxy Configuration
 ```bash
 HTTP_PROXY=http://proxy.company.com:8080
 HTTPS_PROXY=https://proxy.company.com:8080
 NO_PROXY=localhost,127.0.0.1,.local,company.internal
 ```
 
-### Optional - Pipeline Configuration
-```bash
-REPO_NAME=railway_oriented_java     # Repository name
-GIT_REPO=https://github.com/...     # Full git URL
-GIT_BRANCH=main                      # Branch to build
-IMAGE_NAME=railway-oriented-java    # Docker image name
-DEPLOY_WEBHOOK=https://...          # Deployment webhook (optional)
-```
 
 ### Debug Modes
 ```bash
@@ -520,5 +528,5 @@ For more information:
 ---
 
 **Status**: ✅ Ready to use
-**Last Updated**: November 22, 2025
+**Last Updated**: March 16, 2026
 **Original Pipeline**: Completely untouched

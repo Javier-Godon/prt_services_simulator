@@ -44,13 +44,19 @@ dagger version   # v0.19.7
 ### 2️⃣ Set Up Credentials
 
 ```bash
-# Create/update credentials/.env with your GitHub token and username
+# Minimal credentials/.env — works with GitHub + GHCR (defaults)
 cat > credentials/.env << EOF
-CR_PAT=ghp_xxxxxxxxxxxx       # GitHub Personal Access Token (write:packages scope)
-USERNAME=your-github-username # Your GitHub username
+CR_PAT=your_token          # Personal Access Token with write:packages scope
+USERNAME=your_username     # Username on the git hosting platform
 EOF
 
-# Optional: Source the credentials
+# Optional overrides for other platforms:
+# GIT_HOST=gitlab.com               # default: github.com
+# GIT_AUTH_USERNAME=oauth2          # default: x-access-token (GitHub); oauth2 for GitLab
+# REGISTRY=registry.gitlab.com      # default: ghcr.io
+# REGISTRY_USERNAME=my-org          # default: same as USERNAME
+
+# Load the credentials
 set -a
 source credentials/.env
 set +a
@@ -82,15 +88,18 @@ Expected output:
 ### Using credentials/.env (Recommended)
 
 ```bash
-# credentials/.env contains CR_PAT and USERNAME
-# Load environment and run
+# credentials/.env contains CR_PAT and USERNAME (and optional overrides)
 set -a
 source credentials/.env
 set +a
 
-# Optional overrides
-export REPO_NAME="railway_oriented_java"
-export IMAGE_NAME="railway_framework"
+# Optional overrides (can also live in credentials/.env):
+# export GIT_HOST=gitlab.com            # default: github.com
+# export GIT_AUTH_USERNAME=oauth2       # default: x-access-token
+# export REGISTRY=registry.gitlab.com   # default: ghcr.io
+# export REGISTRY_USERNAME=my-org       # default: same as USERNAME
+# export REPO_NAME=prt_services_simulator
+# export IMAGE_NAME=prt-services-simulator
 
 # Run the complete pipeline
 ./run.sh
@@ -99,22 +108,20 @@ export IMAGE_NAME="railway_framework"
 ### Or set environment variables directly
 
 ```bash
-export CR_PAT="ghp_xxxxxxxxxxxx"
-export USERNAME="your-github-username"
-export REPO_NAME="railway_oriented_java"
-export IMAGE_NAME="railway_framework"
+export CR_PAT="your_token"
+export USERNAME="your_username"
+# Add GIT_HOST / REGISTRY overrides here if needed
 
 ./run.sh
 ```
 
 This will:
-1. ✅ Find your Maven project (railway_framework)
+1. ✅ Clone repository from `GIT_HOST` (default: github.com)
 2. ✅ Compile Java 25 code with preview features
-3. ✅ Run unit tests (58 tests)
-4. ✅ Run integration tests with Testcontainers (12 PostgreSQL-based tests)
-5. ✅ Build Docker image (multi-stage)
-6. ✅ Publish to GitHub Container Registry
-7. ✅ Create version + latest tags
+3. ✅ Run all Spring Boot MockMvc tests
+4. ✅ Build Docker image (multi-stage)
+5. ✅ Publish to `REGISTRY` (default: ghcr.io) under `REGISTRY_USERNAME`
+6. ✅ Create versioned + latest tags
 
 ## 📊 Comparison: Python vs Go
 
@@ -278,74 +285,37 @@ Using Dagger Go instead of Python:
 
 ## ✅ Checklist
 
-Before deployment:
+Before running the pipeline:
 
 - [ ] Go 1.22+ installed
-- [ ] Dagger CLI installed
 - [ ] Docker daemon running
-- [ ] GitHub token (CR_PAT) available with write:packages scope
-- [ ] GitHub username set in environment
+- [ ] `credentials/.env` created with `CR_PAT` and `USERNAME`
+- [ ] (Optional) `GIT_HOST`, `REGISTRY`, `REGISTRY_USERNAME` set if not using GitHub/GHCR
 - [ ] Ran `./test.sh` successfully
-- [ ] IntelliJ IDEA configured (if using IDE)
-- [ ] credentials/.env file created with CR_PAT and USERNAME
-
-## 🧪 Test Modes
-
-The pipeline supports three independent test modes via environment variables:
-
-### Unit Tests Only (Default)
-```bash
-set -a
-source credentials/.env
-set +a
-RUN_UNIT_TESTS=true RUN_INTEGRATION_TESTS=false ./railway-dagger-go
-# Runs 58 unit tests (no Docker required)
-```
-
-### Full Suite (Unit + Integration)
-```bash
-set -a
-source credentials/.env
-set +a
-RUN_UNIT_TESTS=true RUN_INTEGRATION_TESTS=true ./railway-dagger-go
-# Runs 70 tests: 58 unit + 12 integration (PostgreSQL with Testcontainers)
-# Requires Docker daemon running
-```
-
-### Integration Tests Only
-```bash
-set -a
-source credentials/.env
-set +a
-RUN_UNIT_TESTS=false RUN_INTEGRATION_TESTS=true ./railway-dagger-go
-# Runs 12 integration tests with PostgreSQL testcontainer
-# Requires Docker daemon running
-```
-
-**Note**: Integration tests automatically skip if Docker socket is not available.
+- [ ] IntelliJ IDEA / VS Code configured (if using an IDE)
 
 ## 🎉 Next Steps
 
 1. ✅ Run `./test.sh` to verify setup
-2. ✅ Set `CR_PAT` and `USERNAME` environment variables
-3. ✅ Run `./run.sh` to build and publish first image
-4. ✅ Check GitHub Container Registry for image
-5. ✅ Integrate into CI/CD pipeline (GitHub Actions, etc.)
+2. ✅ Set `CR_PAT` and `USERNAME` (and optional hosting overrides) in `credentials/.env`
+3. ✅ Run `./run.sh` to build and publish the first image
+4. ✅ Check your container registry for the published image
+5. ✅ Integrate into CI/CD pipeline (GitHub Actions, GitLab CI, etc.)
 6. ✅ Monitor first production builds
 
 ## 📞 Support
 
 If issues arise:
 
-1. Check **INTELLIJ_SETUP.md** for IDE problems
-2. Check **DAGGER_GO_SDK.md** for SDK/API questions
+1. Check **guides/BUILD_AND_RUN.md** for complete troubleshooting
+2. Check **guides/INTELLIJ_SETUP.md** for IDE problems
 3. Review **README.md** for pipeline documentation
-4. Run with verbose output: `dagger functions --verbose`
-5. Check Dagger Discord for community help
+4. Check Dagger Discord for community help
 
 ---
 
 **Status**: ✅ Ready for Production
-**Version**: Dagger SDK v0.19.7 (Nov 20, 2025)
+**Version**: Dagger SDK v0.19.7
+**Last Updated**: March 16, 2026
 **Go Version**: 1.22+
 **Java Support**: Java 25 with preview features
